@@ -1,0 +1,9 @@
+# Ignore everything by default — Emacs spawns a lot of state files
+# (eln-cache/, eshell/, history, places, recentf, tramp, backups/, ...).
+*
+
+# Allowlist the actual config sources
+!.gitignore
+!init.el
+!config.el
+!config.org
