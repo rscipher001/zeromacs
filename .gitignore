@@ -5,5 +5,4 @@
 # Allowlist the actual config sources
 !.gitignore
 !init.el
-!config.el
 !config.org
