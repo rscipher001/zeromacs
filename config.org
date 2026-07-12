@@ -246,6 +246,24 @@ By default Emacs doesn't use the system clipboard and that makes copy paste stuf
 (setq select-enable-clipboard t)
 #+end_src
 
+** Add Battery & Clock to Minibuffer
+
+Add clock to minibuffer
+
+#+begin_src emacs-lisp :tangle yes
+  (display-battery-mode)
+  (display-time-mode)
+  (setq display-time-and-date t)
+#+end_src
+
+** Enable better window management
+
+The ~windmove~ package is a built-in package that provides functions for nativating to windows by direction
+
+#+begin_src emacs-lisp :tangle yes
+(windmove-mode)
+#+end_src
+
 * Completions
 
 Emacs as built-in support for completions
@@ -299,6 +317,7 @@ Emacs has packages, they are like plugins. Emacs is an elisp interpreter which m
 The basic setup is sufficient for most packages. If extra setup is needed then it is explicitly stated. You can always go to the project documentation to learn more about available options.
 
 =use-package= function is used for using the built-in package manager.
+
 
 ** Completion
 
@@ -624,6 +643,16 @@ The package =meow-tree-sitter= provides support for treesitter with meow.
   (doom-modeline-mode))
 #+end_src
 
+** Dirvish
+
+#+begin_src emacs-lisp :tangle yes
+(use-package dirvish
+  :defer t
+  :config
+  (dirvish-override-dired-mode)
+)
+#+end_src
+
 * Custom functions
 
 Custom functions I use to automate repetitive tasks.
@@ -653,19 +682,21 @@ When working on the config, emacs has to be rested over and over and over. It is
 
 I like doom keybinds and try to replicate them as long as they don't interfere with any of the existing keybinds or frequently used keybinds. I am using meow to add keybinds instead of adding them to Emacs
 
-** Buffer and Files
-
-Buffer and file related operations.
-
 #+begin_src emacs-lisp :tangle yes
   (meow-leader-define-key
-    '("f s" . save-buffer)
+    '("b i" . ibuffer)
     '("b k" . kill-buffer-and-window)
     '("b n" . next-buffer)
     '("b p" . previous-buffer)
-    '("b i" . ibuffer)
-  )
+    '("f s" . save-buffer)
+    '("o p" . dirvish-side)
+    '("o t" . vterm)
 
+    '("w l" . windmove-right)
+    '("w h" . windmove-left)
+    '("w j" . windmove-down)
+    '("w k" . windmove-up)
+  )
 #+end_src
 
 * Tips
