@@ -4,7 +4,7 @@
 
 * Introduction
 
-This is Emacs configuration that tries to use native features and when it doesn't use native features, it tells you why a package is used over native features. The configuration is targeted towards new users.
+Emacs configuration that tries to use native features and when it doesn't use native features, it tells you why a package is used over native features. The configuration is targeted towards new users.
 
 ** UI
 
@@ -42,7 +42,7 @@ There are two types of Modes in Emacs
 
 To simplify things
 
-- Major mode is a mode that is always active, a mode is applied ot a buffer. If you open a javascript file =javascript-mode= will be active, it is a major-mode because only one type of mode can be active on a buffer. A major mode is more than a file type because when you open a Terminal or a File manager, a different major mode is active on those buffers to they behave as expected.
+- Major mode is a mode that is always active, a mode is applied to a buffer. If you open a JavaScript file =javascript-mode= will be active, it is a major-mode because only one type of mode can be active on a buffer. A major mode is more than a file type because when you open a Terminal or a File manager, a different major mode is active on those buffers to they behave as expected.
 - Minor mode is a mode that adds some functionality and a lot of minor modes can be active at a time. For example, the tool-bar-mode or menu-bar-mode are minor modes. The spelling check or line number options are also minor modes.
 
 ** Buffer vs Minibuffer
@@ -51,11 +51,11 @@ In Emacs the =buffer= and the =minibuffer= are two major points of interaction a
 
 The buffer is what shows the primary content whether it is a file, file manager, terminal, documentation, warning, errors, etc.
 
-The minibuffer is used when user types =M-x= for running commands or =C-x C-f= for =find-file= which is used for opening an existing file or creating new file, opening info about the Emacs functions', variables', etc. Out of the box =minibuffer= only takes a single line but it be made multiline, keep this in mind.
+The minibuffer is used when user types =M-x= for running commands or =C-x C-f= for =find-file= which is used for opening an existing file or creating new file, opening info about the Emacs functions', variables', etc. Out of the box =minibuffer= only takes a single line but it be made multi-line, keep this in mind.
 
 * Init
 
-Add that to your =~/.config/emacs/init.el= and put this file as =~/.config/emacs.config/org=. This will ensure the config.org is automatically loaded as emacs config.
+Add that to your =~/.config/emacs/init.el= and put this file as =~/.config/emacs/config/org=. This will ensure the config.org is automatically loaded as emacs config.
 
 #+begin_src emacs-lisp :tangle no
 ;;; init.el --- Entry file for emacs config -*- lexical-binding: t; -*-
@@ -63,9 +63,9 @@ Add that to your =~/.config/emacs/init.el= and put this file as =~/.config/emacs
  (expand-file-name "config.org" user-emacs-directory))
 #+end_src
 
-* Basic Configuration with sane defaults
+* Basic configuration with sane defaults
 
-Emacs defaults are not designed for 2025 or even 2000 so let's fix that first.
+Emacs defaults are not designed for 2025 so let's fix that first.
 
 ** Lexical Binding
 
@@ -85,14 +85,13 @@ Before anything else, let's use the Emacs' =load-theme= function to set a theme
 
 You can also use *Menu* > *Options* > *Customize Emacs* > *Customize Themes*
 
-If you want a light theme, you can try =modus-operandi-tinted=. You are free to try any other theme as well but I like only these two from the builtin themes.
+If you want a light theme, you can try =modus-operandi-tinted=. You are free to try any other theme as well but I like only these two from the built-in themes.
 
-It is also possible to set third party themes as long as the pacakge is installed
+It is also possible to set third party themes as long as the package is installed
 
 #+begin_src emacs-lisp
-(load-theme 'nord)
+(load-theme 'nord t)
 #+end_src
-
 
 ** Disable the toolbar
 
@@ -106,9 +105,11 @@ The toolbar is enabled by default but it is not useful, even for beginners. The 
 
 The menubar in Emacs is really helpful, like the toolbar it also adapts and shows different options when they are available. I keep it enabled so I can see available options and learn them. I highly advice keeping the menubar enabled for the first year of learning, If you still want to disable it, you can do it with
 
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
 (menu-bar-mode -1)
 #+end_src
+
+You can always access the menubar with =F10= or ~M-x menu-bar-open~.
 
 ** Enable line numbers
 
@@ -118,10 +119,10 @@ We can enable line numbers everywhere with
 (global-display-line-numbers-mode 1)
 #+end_src
 
-We can enable relative line numbers by setting the =display-line-numbers-mode= varibale. =setq= function is used for setting variables
+We can enable relative line numbers by setting the =display-line-numbers-mode= variable. =setq= function is used for setting variables
 
 #+begin_src emacs-lisp
-(setq display-line-numbers-mode 'relative)
+(setq display-line-numbers-type 'relative)
 #+end_src
 
 =global-display-line-numbers-mode= enables line numbers everywhere, including the terminal, file browser, help pages and everywhere else and that's not what we want so we will use hooks to enable the line numbers for only the certain modes. Hooks can be used to to set or trigger something conditionally
@@ -143,7 +144,7 @@ A very basic feature but it becomes really important once we have the full setup
 
 ** Enable minibuffer history
 
-Save minibuffer history so it is avaiable when you restart Emacs, it will be used for ranking the auto suggestions when we will setup minibuffer enhancements.
+Save minibuffer history so it is available when you restart Emacs, it will be used for ranking the auto suggestions when we will setup minibuffer enhancements.
 
 #+begin_src emacs-lisp
 (savehist-mode)
@@ -167,7 +168,7 @@ This will enable it everywhere including terminals like vterm which is annoying 
 
 ** Enable which key
 
-Shows the available command whey you press a pertial keychord like =C-c=
+Shows the available command whey you press a partial key chord like =C-c=
 
 #+begin_src emacs-lisp
 (which-key-mode 1)
@@ -199,7 +200,7 @@ When you want to paste something in Emacs, it uses a list of thins you copied in
 
 ** Enable Custom file
 
-Emacs allows changing settings from the menus and saves those settins in a custom file and you can use *Menu* > *Options* > *Customize Emacs* and here you have a lot of options to customize emacs. You can either *Apply* a customization or *Apply and Save*. When you use the *Apply and Save* option, emacs writes the changes to your ~init.el~ file. In practice, this is annoying. We can tell Emacs to use a custom file for customization, the ~custom-file~ variable is used for that, it is an existing variable in Emacs. To set it
+Emacs allows changing settings from the menus and saves those settings in a custom file and you can use *Menu* > *Options* > *Customize Emacs* and here you have a lot of options to customize emacs. You can either *Apply* a customization or *Apply and Save*. When you use the *Apply and Save* option, emacs writes the changes to your ~init.el~ file. In practice, this is annoying. We can tell Emacs to use a custom file for customization, the ~custom-file~ variable is used for that, it is an existing variable in Emacs. To set it
 
 #+begin_src emacs-lisp
 (setq custom-file (concat user-emacs-directory "custom.el"))
@@ -216,24 +217,24 @@ Font setting can be confusing in Emacs.
 - =fixed-pitch= font: Monospace font
 - =variable-pitch= font: Non monospace font
 
-The height is roughly =font size * 10=. Height 120 would be similar to height 12 in modern softwares.
+The height is roughly =font size * 10=. Height 120 would be similar to height 12 in modern software.
 
 #+begin_src emacs-lisp
 (set-face-attribute 'default nil
-		    :family "Iosevka Comfy"
-		    :height 120
+		    :family "Iosevka"
+		    :height 150
 		    :weight 'regular)
 
 ;; Monospace font
 (set-face-attribute 'fixed-pitch nil
 		    :family "Iosevka"
-		    :height 120
+		    :height 150
 		    :weight 'regular)
 
 ;; Regular font
 (set-face-attribute 'variable-pitch nil
-		    :family "Fira Sans"
-		    :height 120
+		    :family "Fira Sans Book"
+		    :height 150
 		    :weight 'regular)
 #+end_src
 
@@ -257,7 +258,11 @@ The inlay suggestions features is built into Emacs and can be enabled with
 (global-completion-preview-mode)
 #+END_SRC
 
-* Org Mode
+* Org mode
+
+Org mode does a lot of things. This is some sane defaults to make it look modern and have add some improvements
+
+** Indent according to structure
 
 Enable =org-indent-mode= so the org mode nested content shows as indented. This mode throws error if applied globally so it should only be applied in the org mode
 
@@ -265,10 +270,22 @@ Enable =org-indent-mode= so the org mode nested content shows as indented. This 
 (add-hook 'org-mode-hook 'org-indent-mode)
 #+end_src
 
+** Use visual lines
+
 Enable =visual-line-mode= so word-wrap is enabled and =C-a=, =C-e= and other line related operations works on the visible line not the logical line
 
 #+begin_src emacs-lisp
 (add-hook 'org-mode-hook 'visual-line-mode)
+#+end_src
+
+** Modern look
+
+We will use a third party package for it
+
+#+begin_src emacs-lisp :tangle yes
+  (use-package org-modern
+    :config
+    (global-org-modern-mode))
 #+end_src
 
 * Packages
@@ -277,18 +294,27 @@ This is a list of third party packages as well as first party packages that are 
 
 ** Introduction
 
-Emacs has packages, they are like plugins. Emacs is an elisp interpreter which means it runs =elisp= code. Most of Emacs is written in =elisp=. In order to customize Emacs, the user only needs to change variables in emacs which we have done a few times with =setq= or by calling functions, we have called many functions with 1 or -1 parameter as well as t parameter which stands for true (Everything non nil is true). In order to change behavior or Emacs, we can add our own functions or extend the built-in functions. Most packages just do that. Emacs is insanely extensible and that's why it is possible to emulate vim in Emacs with evil mode but the extensiblility doesn't end there. The possibilities are literally infinite because Emacs is a programmable editor and each user makes changes that suites their own. Now let's look at some of the packaes that ehhances experience by extending the feature in Emacs or by providing new features.
+Emacs has packages, they are like plugins. Emacs is an elisp interpreter which means it runs =elisp= code. Most of Emacs is written in =elisp=. In order to customize Emacs, the user only needs to change variables in emacs which we have done a few times with =setq= or by calling functions, we have called many functions with 1 or -1 parameter as well as t parameter which stands for true (Everything non nil is true). In order to change behavior or Emacs, we can add our own functions or extend the built-in functions. Most packages just do that. Emacs is insanely extensible and that's why it is possible to emulate vim in Emacs with evil mode but the extensibility doesn't end there. The possibilities are literally infinite because Emacs is a programmable editor and each user makes changes that suites their own. Now let's look at some of the packages that enhances experience by extending the feature in Emacs or by providing new features.
 
-The basic setup is sufficient for most packages. If extra setup is needed then it is explicity stated. You can always go to the project documentation to learn more about available options.
+The basic setup is sufficient for most packages. If extra setup is needed then it is explicitly stated. You can always go to the project documentation to learn more about available options.
 
 =use-package= function is used for using the built-in package manager.
 
-** Minibuffer Enhancements
-*** Vertico
+** Completion
+
+The completion packages fall into two categories in Emacs
+
+- In buffer completion
+- Minibuffer completion
+- Both
+
+*** Minbuffer
+
+**** Vertico
 
 Vertico is a third party package, it is used for enabling vertical list in minibuffer. The name stands for =VERTICal Interactive COmpletion=.
 
-**** Built-in solutions
+***** Built-in solutions
 
 We can enable the vertical minibuffer with built-in =fido-vertical-mode=.
 
@@ -300,9 +326,9 @@ In the next step we will enable *Marginalia* and =fido-vertical-mode= works fine
 
 Why are we adding *Vertico* if =fido-vertical-mode= already does what we want?
 
-Because, the builtin =fido-vertical-mode= doesn't work with third party completion styles, we will see that in when we will setup *Orderless*.
+Because, the built-in =fido-vertical-mode= doesn't work with third party completion styles, we will see that in when we will setup *Orderless*.
 
-**** Setup
+***** Setup
 
 This basic setup is sufficient.
 
@@ -313,6 +339,11 @@ This basic setup is sufficient.
   (vertico-mode))
 #+end_src
 
+*** Buffer
+
+These packages are used for inbuffer completion
+
+** Minibuffer Enhancements
 *** Marginalia
 
 Marginalia shows help information alongside the list in the minibuffer based on what information is being displayed like
@@ -372,7 +403,6 @@ If you want to setup consult properly, you should read the consult package docum
   ;; Use Consult to select xref locations with preview
   (setq xref-show-xrefs-function #'consult-xref
         xref-show-definitions-function #'consult-xref)
-  )
   :config
   ;; Optionally configure preview. The default value
   ;; is 'any, such that any key triggers the preview.
@@ -397,6 +427,7 @@ If you want to setup consult properly, you should read the consult package docum
   ;; Optionally make narrowing help available in the minibuffer.
   ;; You may want to use `embark-prefix-help-command' or which-key instead.
   ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
+)
 #+end_src
 
 ** Buffer Completion
@@ -473,7 +504,7 @@ A collection of snippets
 
 ** Modal Editing
 
-There are a few modal editiong options available for Emacs. =evil-mode= is the most famous one that emulates vim but I prefer using meow over evil. Meow is fundamentally different than =evil-mode= and designed to work with Emacs. 
+There are a few modal editing options available for Emacs. =evil-mode= is the most famous one that emulates vim but I prefer using meow over evil. Meow is fundamentally different than =evil-mode= and designed to work with Emacs. 
 
 *** Meow
 **** Setup
@@ -565,7 +596,7 @@ Keyboard layout setup for qwerty
    '("<escape>" . ignore)))
 #+end_src
 
-Initalize meow
+Initialize meow
 
 #+begin_src emacs-lisp
 (use-package meow
@@ -584,9 +615,22 @@ The package =meow-tree-sitter= provides support for treesitter with meow.
     (meow-tree-sitter-register-defaults))
 #+end_src
 
-* Helpers
+** Doom Packges
 
-When working on the config, emacs has to be reasted over and over and over. It is possible to switch to init.el and and eval the buffer to reload the config. We will do exactly that but add a helper method to the config
+#+begin_src emacs-lisp :tangle yes
+(use-package doom-modeline
+  :ensure t
+  :init
+  (doom-modeline-mode))
+#+end_src
+
+* Custom functions
+
+Custom functions I use to automate repetitive tasks.
+
+** Reload config
+
+When working on the config, emacs has to be rested over and over and over. It is possible to switch to init.el and and eval the buffer to reload the config. We will do exactly that but add a helper method to the config
 
 #+begin_src emacs-lisp
 (defun my/reload-config ()
@@ -597,9 +641,55 @@ When working on the config, emacs has to be reasted over and over and over. It i
 	      user-emacs-directory)))
 #+end_src
 
+** Copy buffer path
+
+#+begin_src emacs-lisp :tangle no
+(defun my/yank-buffer-path ()
+    (interactive)
+)
+#+end_src
+
+* Keybinds
+
+I like doom keybinds and try to replicate them as long as they don't interfere with any of the existing keybinds or frequently used keybinds. I am using meow to add keybinds instead of adding them to Emacs
+
+** Buffer and Files
+
+Buffer and file related operations.
+
+#+begin_src emacs-lisp :tangle yes
+  (meow-leader-define-key
+    '("f s" . save-buffer)
+    '("b k" . kill-buffer-and-window)
+    '("b n" . next-buffer)
+    '("b p" . previous-buffer)
+    '("b i" . ibuffer)
+  )
+
+#+end_src
+
 * Tips
 
-- You can use =M-/= to autocomplete a word that already exists in open buffers. It is really helpful when typing long words, if the correct word is not matched on the first try, press it again and again till you get it right
-- You can use =M-S-x= to search for options that only applies to current major mode, this is really helpful for learning what options are available for current buffer instead of seaching all available options.
-- =ibuffer= is a command that shows a list of all buffers, it is interactive so you can mark the buffers with =d= and delete the marked buffers with =x=, really useful for closing a bunch of buffers at once. If you have menubar enabled, you can see all the options in the *Menu* > *Operate*
-  
+** Autocomplete
+
+You can use =M-/= to auto-complete a word that already exists in open buffers. It is really helpful when typing long words, if the correct word is not matched on the first try, press it again and again till you get it right
+
+** Mode Specific Commands
+
+You can use =M-S-x= to search for options that only applies to current major mode, this is really helpful for learning what options are available for current buffer instead of searching all available options.
+
+** Efficient ibuffer
+
+=ibuffer= is a command that shows a list of all buffers, it is interactive so you can mark the buffers with =d= and delete the marked buffers with =x=, really useful for closing a bunch of buffers at once. If you have menu-bar enabled, you can see all the options in the *Menu* > *Operate*
+
+** Editing files with sudo
+
+To edit files with sudo using Emacs, append ~/sudo::~ before the file path and the file will be opened as sudo.
+
+*** Sudo with tramp
+
+=sudo= can be used with tramp to edit files on the remote server as root, I am going to use the server =test-server= as an example here. Enter the following in the find file
+
+#+begin_example
+/ssh:user@test-server|sudo::/etc/fstab
+#+end_example
