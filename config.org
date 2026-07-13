@@ -373,6 +373,56 @@ Add a before save hook to update the =LAST_UPDATED= field
   (electric-indent-local-mode -1)))
 #+end_src
 
+** Org capture
+
+Org caputre has a few parts. The core parts are
+
+- Capture templates
+- Refile system
+
+*** Setup org caputre notes files
+
+This is the file where captured notes would be saved, this variable is used by the default capture template.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-default-notes-file (concat org-directory "/Notes.org"))
+#+end_src
+
+*** Setup capture templates
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-capture-templates
+  '(
+     ("t" "Todo" entry (file+headline (concat rg-directory "Tasks.org") "Tasks")
+      "* TODO %?\n  %i\n  %a")
+
+     ("j" "Journal" entry (file+olp+datetree "~/org/journal.org")
+         "* %?\nEntered on %U\n  %i\n  %a")
+  )
+)   
+
+
+#+end_src
+
+** Quick Access
+
+It is a good idea to setup quick access
+
+Using a register
+
+#+begin_src emacs-lisp :tangle yes
+(set-register ?o (cons 'file (concat org-directory "/Tasks.org")))
+#+end_src
+
+It is also possible to set a global keybind to open the primary org file
+
+#+begin_src emacs-lisp :tangle no
+(global-set-key (kbd "C-c o") 
+  (lambda ()
+    (interactive)
+      (find-file (concat org-directory "Tasks.org"))))
+#+end_src
+
 * Packages
 
 This is a list of third party packages as well as first party packages that are very useful for enhancing the UX.
@@ -592,6 +642,10 @@ A collection of snippets
 There are a few modal editing options available for Emacs. =evil-mode= is the most famous one that emulates vim but I prefer using meow over evil. Meow is fundamentally different than =evil-mode= and designed to work with Emacs. 
 
 *** Meow
+
+Meow has something called a keypad mode that is similar to god mode package. Pressing =SPC= starts it
+- The first letter input, except x, c, h, m, g will be translated to C-c <key>.
+
 **** Setup
 
 Keyboard layout setup for qwerty
@@ -702,7 +756,9 @@ The package =meow-tree-sitter= provides support for treesitter with meow.
 
 ** Doom Packges
 
-#+begin_src emacs-lisp :tangle yes
+Doom modeline is a nice modeline package for modeline customization. I am not using it yet because it conflicts with keycast package.
+
+#+begin_src emacs-lisp :tangle no
 (use-package doom-modeline
   :ensure t
   :init
@@ -723,10 +779,23 @@ Register dirvish and disable reuse session so multiple dirvish buffers are not c
 
 Set dirvish attributes
 
-#+begin_src emacs-lisp :tangle no
-  
-  (setq
-    )
+#+begin_src emacs-lisp :tangle yes
+(setq dirvish-attributes
+  (append 
+	   '(vc-state subtree-state nerd-icons collapse)))
+#+end_src
+
+** Keycast mode
+
+Shows the keybind and the function name when a key is pressed
+
+#+begin_src emacs-lisp :tangle yes
+(use-package keycast
+  :ensure t
+  :config
+  (keycast-mode-line-mode 1)
+)
+
 #+end_src
 
 ** Extra modes for file types
@@ -779,6 +848,8 @@ When working on the config, emacs has to be rested over and over and over. It is
 
 I like doom keybinds and try to replicate them as long as they don't interfere with any of the existing keybinds or frequently used keybinds. I am using meow to add keybinds instead of adding them to Emacs
 
+The first letter input, except x, c, h, m, g will be translated to C-c <key>.
+
 #+begin_src emacs-lisp :tangle yes
   (meow-leader-define-key
     '("b i" . ibuffer)
@@ -788,11 +859,23 @@ I like doom keybinds and try to replicate them as long as they don't interfere w
     '("f s" . save-buffer)
     '("o p" . dirvish-side)
     '("o t" . vterm)
+    '("o o" . (lambda ()
+  	      (interactive)
+  	      (find-file (concat org-directory "/Tasks.org"))))
 
     '("w l" . windmove-right)
     '("w h" . windmove-left)
     '("w j" . windmove-down)
     '("w k" . windmove-up)
+
+    ;; p = preview with consult, not project
+    '("p b" . consult-buffer)
+    '("p f" . consult-fd)
+    '("p l" . consult-line)
+    '("p m" . consult-mark)
+    '("p r" . consult-recent-file)
+    '("p s" . consult-yasnippet)
+    '("p t" . consult-theme)
   )
 #+end_src
 
