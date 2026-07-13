@@ -306,6 +306,73 @@ We will use a third party package for it
     (global-org-modern-mode))
 #+end_src
 
+** Set Org Directory
+
+Location of org files, it is used by org capture and org agenda.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-directory "~/Projects/Orgfiles")
+#+end_src
+
+** Task management
+
+Save the time when task is marked as done, this can be enabled per org file with =#+STARTUP: logdone=
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-log-done 'time)
+#+end_src
+
+Recursively scan org files for org agenda
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-refresh-agenda-files (&rest _)
+  "Rescan `org-directory' so new files are included in the agenda."
+  (setq org-agenda-files (directory-files-recursively org-directory "\\.org$")))
+#+end_src
+
+Run this function before org agenda is loaded
+
+#+begin_src emacs-lisp :tangle yes
+(advice-add 'org-agenda
+  :before
+  #'my/org-refresh-agenda-files)
+#+end_src
+
+Add my own org todo keywords
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-todo-keywords
+  '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+#+end_src
+
+** Last Updated Hook
+
+I like a keeping =#+LAST_UPDATED:= heading in my org files, I add a cusotm function and a save hook to update it.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-update-last-updated ()
+  (when (eq major-mode 'org-mode)
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+LAST_UPDATED:" nil t)
+        (delete-region (point) (line-end-position))
+        (insert " " (format-time-string "[%Y-%m-%d %a %H:%M]"))))))
+#+end_src
+
+Add a before save hook to update the =LAST_UPDATED= field
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'before-save-hook #'my/org-update-last-modified)
+#+end_src
+
+** Disable src indentation
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-mode-hook
+  (lambda ()
+  (electric-indent-local-mode -1)))
+#+end_src
+
 * Packages
 
 This is a list of third party packages as well as first party packages that are very useful for enhancing the UX.
@@ -317,7 +384,6 @@ Emacs has packages, they are like plugins. Emacs is an elisp interpreter which m
 The basic setup is sufficient for most packages. If extra setup is needed then it is explicitly stated. You can always go to the project documentation to learn more about available options.
 
 =use-package= function is used for using the built-in package manager.
-
 
 ** Completion
 
@@ -645,12 +711,43 @@ The package =meow-tree-sitter= provides support for treesitter with meow.
 
 ** Dirvish
 
+Register dirvish and disable reuse session so multiple dirvish buffers are not created when navigating directories
+
 #+begin_src emacs-lisp :tangle yes
 (use-package dirvish
   :defer t
   :config
   (dirvish-override-dired-mode)
-)
+  (setq dirvish-reuse-session nil))
+#+end_src
+
+Set dirvish attributes
+
+#+begin_src emacs-lisp :tangle no
+  
+  (setq
+    )
+#+end_src
+
+** Extra modes for file types
+
+*** KDL mode
+
+#+begin_src emacs-lisp :tangle yes
+(use-package kdl-mode
+  :ensure t
+  :defer t)
+#+end_src
+
+*** CSV mode
+
+#+begin_src emacs-lisp :tangle yes
+(use-package csv-mode
+  :ensure t
+  :defer t
+  :mode "\\.[ct]sv\\'"
+  :config
+ (setq csv-separators '("," ";" "\t")))
 #+end_src
 
 * Custom functions
@@ -666,8 +763,8 @@ When working on the config, emacs has to be rested over and over and over. It is
   "Reload emacs config"
   (interactive)
   (load-file (expand-file-name
-	      "init.el"
-	      user-emacs-directory)))
+     "init.el"
+     user-emacs-directory)))
 #+end_src
 
 ** Copy buffer path
