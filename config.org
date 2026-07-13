@@ -166,6 +166,14 @@ This will enable it everywhere including terminals like vterm which is annoying 
 (add-hook 'org-mode-hook 'hl-line-mode)
 #+end_src
 
+** Enable auto pairs
+
+Electric-pair-mode auto completes the parenthesis, brackets, quotes, etc.
+
+#+begin_src emacs-lisp :tangle yes
+(electric-pair-mode)
+#+end_src
+
 ** Enable which key
 
 Shows the available command whey you press a partial key chord like =C-c=
@@ -262,6 +270,22 @@ The ~windmove~ package is a built-in package that provides functions for nativat
 
 #+begin_src emacs-lisp :tangle yes
 (windmove-mode)
+#+end_src
+
+** Always add a newline the end of the file
+
+This will add a new line at the end of the file
+
+#+begin_src emacs-lisp :tangle yes
+(setq require-final-newline t)
+#+end_src
+
+** Highlight uncommited lines
+
+This will highlight the uncommited changes
+
+#+begin_src emacs-lisp :tangle yes
+(diff-hl-mode)
 #+end_src
 
 * Completions
@@ -393,15 +417,31 @@ This is the file where captured notes would be saved, this variable is used by t
 #+begin_src emacs-lisp :tangle yes
 (setq org-capture-templates
   '(
-     ("t" "Todo" entry (file+headline (concat rg-directory "Tasks.org") "Tasks")
-      "* TODO %?\n  %i\n  %a")
+     ("t" "Todo" entry
+       (file+headline "Tasks.org" "Inbox")
+       "* TODO %?\n  %i\n  %a")
 
-     ("j" "Journal" entry (file+olp+datetree "~/org/journal.org")
-         "* %?\nEntered on %U\n  %i\n  %a")
+     ("j" "Journal" entry
+       (file+olp+datetree "Journal.org")
+       "* %?\nEntered on %U\n  %i\n  %a")
   )
-)   
+)
+#+end_src
 
+*** Setup a better org-refile system
 
+Org-refile allows moving the tasks from the capture area to the proper place where they belong. By default it only allows moving tasks to top level headings. Change that to 5 levels so when moving a captured item, we get full flexibility of selecting the heading where it belongs
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-refile-targets '((org-agenda-files . (:maxlevel . 5))))
+#+end_src
+
+The above command may not work if you have files that are recently created or you want to include all the org files. To fix this we will use ~advice-add~ for org-refile, this function will run before org-refile and add add the org files to ~org-agenda-files~ variable.
+
+#+begin_src emacs-lisp :tangle yes
+(advice-add 'org-refile
+  :before
+  #'my/org-refresh-agenda-files)
 #+end_src
 
 ** Quick Access
@@ -873,10 +913,18 @@ The first letter input, except x, c, h, m, g will be translated to C-c <key>.
     '("p f" . consult-fd)
     '("p l" . consult-line)
     '("p m" . consult-mark)
+    '("p p" . consult-org-heading)
     '("p r" . consult-recent-file)
     '("p s" . consult-yasnippet)
     '("p t" . consult-theme)
   )
+#+end_src
+
+Override the default search with consult line
+
+#+begin_src emacs-lisp :tangle yes
+(keymap-global-set "C-s" 'consult-line)
+(keymap-global-set "C-c c" 'org-capture)
 #+end_src
 
 * Tips
