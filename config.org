@@ -336,13 +336,15 @@ Enable =visual-line-mode= so word-wrap is enabled and =C-a=, =C-e= and other lin
 
 ** Modern look
 
-We will use a third party package for it
+We will use a third party package for it.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package org-modern
   :ensure t
-  :hook ((org-mode . org-modern-mode)
-         (org-agenda-finalize . org-modern-agenda)))
+  :hook
+  (org-agenda-finalize . org-modern-agenda)
+  :init
+  (add-hook 'org-mode-hook #'org-modern-mode 90))
 #+end_src
 
 Hide the bold, italic, etc markers and make the render superscript and subscript values
