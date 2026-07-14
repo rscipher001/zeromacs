@@ -87,10 +87,21 @@ You can also use *Menu* > *Options* > *Customize Emacs* > *Customize Themes*
 
 If you want a light theme, you can try =modus-operandi-tinted=. You are free to try any other theme as well but I like only these two from the built-in themes.
 
-It is also possible to set third party themes as long as the package is installed
+It is also possible to set third party themes as long as the package is installed.
+
+When Emacs runs as a daemon, the config loads before any graphical frame exists, so =load-theme= applies against a frame-less (or terminal) display and the colors come out wrong in later =emacsclient= frames. The fix is to delay theme loading until the first client frame is created using =server-after-make-frame-hook=, and only load it directly when Emacs is started normally.
 
 #+begin_src emacs-lisp
-(load-theme 'nord t)
+(use-package nord-theme
+  :ensure t
+  :config
+  (defun my/load-theme (&rest _)
+    "Load the theme, resetting any previously enabled themes first."
+    (mapc #'disable-theme custom-enabled-themes)
+    (load-theme 'nord t))
+  (if (daemonp)
+      (add-hook 'server-after-make-frame-hook #'my/load-theme)
+    (my/load-theme)))
 #+end_src
 
 ** Disable the toolbar
@@ -285,7 +296,9 @@ This will add a new line at the end of the file
 This will highlight the uncommited changes
 
 #+begin_src emacs-lisp :tangle yes
-(diff-hl-mode 1)
+(use-package diff-hl
+  :ensure t
+  :hook ((prog-mode conf-mode) . diff-hl-mode))
 #+end_src
 
 * Completions
@@ -326,8 +339,9 @@ We will use a third party package for it
 
 #+begin_src emacs-lisp :tangle yes
 (use-package org-modern
-  :config
-  (global-org-modern-mode 1))
+  :ensure t
+  :hook ((org-mode . org-modern-mode)
+         (org-agenda-finalize . org-modern-agenda)))
 #+end_src
 
 Hide the bold, italic, etc markers and make the render superscript and subscript values
@@ -467,6 +481,12 @@ It is also possible to set a global keybind to open the primary org file
       (find-file (concat org-directory "Tasks.org"))))
 #+end_src
 
+** Org Babel
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-confirm-babel-evaluate nil)
+#+end_src
+
 * Packages
 
 This is a list of third party packages as well as first party packages that are very useful for enhancing the UX.
@@ -571,6 +591,7 @@ If you want to setup consult properly, you should read the consult package docum
 #+begin_src emacs-lisp
 (use-package consult
   :ensure t
+  :defer t
   :init
   ;; Tweak the register preview for `consult-register-load',
   ;; `consult-register-store' and the built-in commands.  This improves the
@@ -616,6 +637,7 @@ Corfu is a package for buffer completion.
 
 #+begin_src emacs-lisp
 (use-package corfu
+  :ensure t
   ;; Optional customizations
   ;; :custom
   ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
@@ -669,15 +691,23 @@ For beginners it is a good idea to use Yasnippet for both snippet management and
 #+begin_src emacs-lisp
 (use-package yasnippet
   :ensure t
-  :init
-  (yas-global-mode 1))
+  :hook ((prog-mode conf-mode org-mode) . yas-minor-mode))
 #+end_src
 
 A collection of snippets
 
 #+begin_src emacs-lisp
 (use-package yasnippet-snippets
-  :ensure t)
+  :ensure t
+  :after yasnippet)
+#+end_src
+
+Consult integration for searching and inserting snippets, used by the =SPC p s= keybind
+
+#+begin_src emacs-lisp
+(use-package consult-yasnippet
+  :ensure t
+  :defer t)
 #+end_src
 
 ** Modal Editing
@@ -782,6 +812,7 @@ Initialize meow. Set vterm and Custom mode to insert mode by default
 
 #+begin_src emacs-lisp
 (use-package meow
+  :ensure t
   :config
   (meow-setup)
   (add-to-list 'meow-mode-state-list '(vterm-mode . insert))
@@ -796,6 +827,8 @@ The package =meow-tree-sitter= provides support for treesitter with meow.
 
 #+begin_src emacs-lisp
 (use-package meow-tree-sitter
+  :ensure t
+  :after meow
   :config
   (meow-tree-sitter-register-defaults))
 #+end_src
@@ -817,6 +850,7 @@ Register dirvish and disable reuse session so multiple dirvish buffers are not c
 
 #+begin_src emacs-lisp :tangle yes
 (use-package dired
+  :defer t
   :config
   (setq dired-listing-switches
         "-l --almost-all --human-readable --group-directories-first --no-group")
@@ -838,7 +872,7 @@ Register dirvish and disable reuse session so multiple dirvish buffers are not c
     '(("h" "~/"                                            "Home")
       ("d" "~/Downloads/"                                  "Downloads")
       ("m" "/mnt/"                                         "Drives")
-      ("s" "/ssh:zero-oracle"                              "SSH server")
+      ("s" "/ssh:zero-oracle:~"                            "SSH server")
       ("o" "~/Projects/Orgfiles"                           "Org Files")
       ("c" "~/Projects/GitHub/zeromacs/config.org"         "Zeromacs Config")
       ("e" "/sudo:root@localhost:/etc"                     "Modify program settings")
@@ -865,6 +899,25 @@ Set dirvish attributes
     '(vc-state subtree-state nerd-icons collapse)))
 #+end_src
 
+Dirvish over tramp. This will be a really annoying experience if a Yubikey based SSH key is used that requires touch
+
+#+begin_src emacs-lisp :tangle no
+(use-package tramp
+  :config
+  ;; Enable full-featured Dirvish over TRAMP on ssh connections
+  ;; https://www.gnu.org/software/tramp/#Improving-performance-of-asynchronous-remote-processes
+  (connection-local-set-profile-variables
+   'remote-direct-async-process
+   '((tramp-direct-async-process . t)))
+  (connection-local-set-profiles
+   '(:application tramp :protocol "ssh")
+   'remote-direct-async-process)
+  ;; Tips to speed up connections
+  (setq tramp-verbose 0)
+  (setq tramp-chunksize 2000)
+  (setq tramp-ssh-controlmaster-options nil))
+#+end_src
+
 ** Keycast mode
 
 Shows the keybind and the function name when a key is pressed. We set the variable =keycast-mode-line-format= with =%K=. The default is =%k= which shows a GUI button. This change converted that to a TUI botton.
@@ -884,12 +937,13 @@ Enable =visual-line-mode= in all magit buffers so long lines like commit message
 
 #+begin_src emacs-lisp :tangle yes
 (use-package magit
+  :ensure t
   :hook (magit-mode . visual-line-mode))
 #+end_src
 
 ** Age encryption
 
-Age is an encryption package, in this section, we will setup support age encrypted files so they can behave like regular files in Emacs but will remain encrypted on the disk. With the default setup, the user's default =id_rsa= ssh keys will be used for encryption and decryption. I prefer using my own set of keys that are stored on the Yubikey, also using SSH keys requires keys with no passphrase.
+Age is an encryption tool, in this section, we will setup support age encrypted files so they can behave like regular files in Emacs but will remain encrypted on the disk. With the default setup, the user's default =id_rsa= ssh keys will be used for encryption and decryption. I prefer using my own set of keys that are stored on the Yubikey, also using SSH keys requires keys with no passphrase.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package age
@@ -907,13 +961,65 @@ Age is an encryption package, in this section, we will setup support age encrypt
       "~/.config/age/yubikey_backup.pub")))
 #+end_src
 
+We can also add visual notification for encryption and decryption, useful when using Yubikeys. Taken from the package README.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'notifications)
+
+(defun my/age-notify (msg &optional simple)
+  (cond (simple
+         (message (format "%s" msg)))
+        ((eq system-type 'gnu/linux)
+         (notifications-notify
+          :title "age.el"
+          :body (format "%s" msg)
+          :urgency 'low
+          :timeout 800))
+        ((eq system-type 'darwin)
+         (do-applescript
+          (format "display notification \"%s\" with title \"age.el\"" msg)))
+        (t
+         (message (format "%s" msg)))))
+
+(defun my/age-notify-decrypt (&rest args)
+  (cl-destructuring-bind (context cipher) args
+    (my/age-notify (format "Decrypting %s" (age-data-file cipher)) t)))
+
+(defun my/age-notify-encrypt (&rest args)
+  (cl-destructuring-bind (context plain recipients) args
+    (my/age-notify (format "Encrypting %s" (age-data-file plain)) t)))
+
+(defun my/age-toggle-decrypt-notifications ()
+  (interactive)
+  (cond ((advice-member-p #'my/age-notify-decrypt #'age-start-decrypt)
+         (advice-remove #'age-start-decrypt #'my/age-notify-decrypt)
+         (message "Disabled age decrypt notifications."))
+        (t
+         (advice-add #'age-start-decrypt :before #'my/age-notify-decrypt)
+         (message "Enabled age decrypt notifications."))))
+
+(defun my/age-toggle-encrypt-notifications ()
+  (interactive)
+  (cond ((advice-member-p #'my/age-notify-encrypt #'age-start-encrypt)
+         (advice-remove #'age-start-encrypt #'my/age-notify-encrypt)
+         (message "Disabled age encrypt notifications."))
+        (t
+         (advice-add #'age-start-encrypt :before #'my/age-notify-encrypt)
+         (message "Enabled age encrypt notifications."))))
+
+;; we only care about decrypt notifications really
+(my/age-toggle-decrypt-notifications)
+(my/age-toggle-encrypt-notifications)
+#+end_src
+
 ** Extra modes for file types
 
 *** KDL mode
 
 #+begin_src emacs-lisp :tangle yes
 (use-package kdl-mode
-  :ensure t)
+  :ensure t
+  :mode "\\.kdl\\'")
 #+end_src
 
 *** CSV mode
@@ -988,6 +1094,7 @@ The first letter input, except x, c, h, m, g will be translated to C-c <key>.
   '("p r" . consult-recent-file)
   '("p s" . consult-yasnippet)
   '("p t" . consult-theme)
+  '("X"   . scratch-buffer)
 )
 #+end_src
 
