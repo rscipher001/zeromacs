@@ -1,5 +1,6 @@
 #+TITLE: Zeromacs Literate Config
 #+STARTUP: fold
+#+PROPERTY: header-args:emacs-lisp :tangle yes
 #+LAST_UPDATED: [2026-07-11 Sat 14:41]
 
 * Introduction
@@ -935,10 +936,17 @@ Shows the keybind and the function name when a key is pressed. We set the variab
 
 Enable =visual-line-mode= in all magit buffers so long lines like commit messages and diffs wrap at the window edge instead of running off screen.
 
+Open the magit status buffer in a full frame using =magit-display-buffer-fullframe-status-v1=.
+
 #+begin_src emacs-lisp :tangle yes
 (use-package magit
   :ensure t
-  :hook (magit-mode . visual-line-mode))
+  :hook (magit-mode . visual-line-mode)
+  :custom
+  (magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
+  :bind
+  (:map magit-status-mode-map
+    ("x" . magit-discard)))
 #+end_src
 
 ** Age encryption
