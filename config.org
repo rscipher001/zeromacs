@@ -147,7 +147,7 @@ A very basic feature but it becomes really important once we have the full setup
 Save minibuffer history so it is available when you restart Emacs, it will be used for ranking the auto suggestions when we will setup minibuffer enhancements.
 
 #+begin_src emacs-lisp
-(savehist-mode)
+(savehist-mode 1)
 #+end_src
 
 ** Enable line highlight
@@ -171,7 +171,7 @@ This will enable it everywhere including terminals like vterm which is annoying 
 Electric-pair-mode auto completes the parenthesis, brackets, quotes, etc.
 
 #+begin_src emacs-lisp :tangle yes
-(electric-pair-mode)
+(electric-pair-mode 1)
 #+end_src
 
 ** Enable which key
@@ -259,8 +259,8 @@ By default Emacs doesn't use the system clipboard and that makes copy paste stuf
 Add clock to minibuffer
 
 #+begin_src emacs-lisp :tangle yes
-  (display-battery-mode)
-  (display-time-mode)
+  (display-battery-mode 1)
+  (display-time-mode 1)
   (setq display-time-and-date t)
 #+end_src
 
@@ -269,7 +269,7 @@ Add clock to minibuffer
 The ~windmove~ package is a built-in package that provides functions for nativating to windows by direction
 
 #+begin_src emacs-lisp :tangle yes
-(windmove-mode)
+(windmove-mode 1)
 #+end_src
 
 ** Always add a newline the end of the file
@@ -285,7 +285,7 @@ This will add a new line at the end of the file
 This will highlight the uncommited changes
 
 #+begin_src emacs-lisp :tangle yes
-(diff-hl-mode)
+(diff-hl-mode 1)
 #+end_src
 
 * Completions
@@ -297,7 +297,7 @@ Emacs as built-in support for completions
 The inlay suggestions features is built into Emacs and can be enabled with
 
 #+BEGIN_SRC emacs-lisp
-(global-completion-preview-mode)
+(global-completion-preview-mode 1)
 #+END_SRC
 
 * Org mode
@@ -325,9 +325,16 @@ Enable =visual-line-mode= so word-wrap is enabled and =C-a=, =C-e= and other lin
 We will use a third party package for it
 
 #+begin_src emacs-lisp :tangle yes
-  (use-package org-modern
-    :config
-    (global-org-modern-mode))
+(use-package org-modern
+  :config
+  (global-org-modern-mode 1))
+#+end_src
+
+Hide the bold, italic, etc markers and make the render superscript and subscript values
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-hide-emphasis-markers t)
+(setq org-pretty-entities t)
 #+end_src
 
 ** Set Org Directory
@@ -511,7 +518,7 @@ This basic setup is sufficient.
 (use-package vertico
   :ensure t
   :init
-  (vertico-mode))
+  (vertico-mode 1))
 #+end_src
 
 *** Buffer
@@ -536,7 +543,7 @@ This basic setup is sufficient but it is possible to change what information is 
   (use-package marginalia
     :ensure t
     :init
-    (marginalia-mode))
+    (marginalia-mode 1))
 #+end_src
 
 *** Orderless
@@ -631,7 +638,7 @@ Corfu is a package for buffer completion.
   ;; Recommended: Enable Corfu globally.  Recommended since many modes provide
   ;; Capfs and Dabbrev can be used globally (M-/).  See also the customization
   ;; variable `global-corfu-modes' to exclude certain modes.
-  (global-corfu-mode)
+  (global-corfu-mode 1)
 
   ;; Enable optional extension modes:
   ;; (corfu-history-mode)
@@ -802,7 +809,7 @@ Doom modeline is a nice modeline package for modeline customization. I am not us
 (use-package doom-modeline
   :ensure t
   :init
-  (doom-modeline-mode))
+  (doom-modeline-mode 1))
 #+end_src
 
 ** Dirvish
@@ -810,11 +817,46 @@ Doom modeline is a nice modeline package for modeline customization. I am not us
 Register dirvish and disable reuse session so multiple dirvish buffers are not created when navigating directories
 
 #+begin_src emacs-lisp :tangle yes
-(use-package dirvish
-  :defer t
+(use-package dired
   :config
-  (dirvish-override-dired-mode)
-  (setq dirvish-reuse-session nil))
+  (setq dired-listing-switches
+        "-l --almost-all --human-readable --group-directories-first --no-group")
+  ;; this command is useful when you want to close the window of `dirvish-side'
+  ;; automatically when opening a file
+  (put 'dired-find-alternate-file 'disabled nil))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+  (use-package dirvish
+    :ensure t
+    :init
+    (dirvish-override-dired-mode 1)
+    :config
+    (setq dirvish-reuse-session nil)
+    (dirvish-side-follow-mode 1)
+    :custom
+    (dirvish-quick-access-entries
+      '(("h" "~/"                                            "Home")
+        ("d" "~/Downloads/"                                  "Downloads")
+        ("m" "/mnt/"                                         "Drives")
+        ("s" "/ssh:zero-oracle"                              "SSH server")
+        ("o" "~/Projects/Orgfiles"                           "Org Files")
+        ("c" "~/Projects/GitHub/zeromacs/config.org"         "Zeromacs Config")
+        ("e" "/sudo:root@localhost:/etc"                     "Modify program settings")
+        ("t" "~/.local/share/Trash/files/"                   "TrashCan")))
+    :bind
+    (("C-c d" . dirvish)
+      :map dirvish-mode-map
+      ("h" . dired-up-directory)
+      ("j" . dired-next-line)
+      ("k" . dired-previous-line)
+      ("l" . dired-find-file)
+      ("TAB" . dirvish-subtree-toggle)
+      ("M-s" . dirvish-setup-menu)
+      ("F" . dirvish-layout-toggle)
+      ("?" . dirvish-dispatch)
+      ("i" . dirvish-quick-access)
+    ))
 #+end_src
 
 Set dirvish attributes
@@ -827,15 +869,37 @@ Set dirvish attributes
 
 ** Keycast mode
 
-Shows the keybind and the function name when a key is pressed
+Shows the keybind and the function name when a key is pressed. We set the variable =keycast-mode-line-format= with =%K= to override the default variable that shows a GUI key with a text key
 
 #+begin_src emacs-lisp :tangle yes
 (use-package keycast
   :ensure t
+  :init
+  (setq keycast-mode-line-format "%10s%K%c%r")
   :config
   (keycast-mode-line-mode 1)
 )
 
+#+end_src
+
+** Age encryption
+
+Age is an encryption package, in this section, we will setup support age encrypted files so they can behave like regular files in Emacs but will remain encrypted on the disk. With the default setup, the user's default =id_rsa= ssh keys will be used for encryption and decryption. I prefer using my own set of keys that are stored on the Yubikey, also using SSH keys requires keys with no passphrase.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package age
+  :ensure t
+  :config
+  (age-file-enable)
+  :custom
+  (age-default-identity
+    '("~/.config/age/primary"
+      "~/.config/age/yubikey_primary"
+      "~/.config/age/yubikey_backup"))
+  (age-default-recipient
+    '("~/.config/age/primary.pub"
+      "~/.config/age/yubikey_primary.pub"
+      "~/.config/age/yubikey_backup.pub")))
 #+end_src
 
 ** Extra modes for file types
@@ -844,8 +908,7 @@ Shows the keybind and the function name when a key is pressed
 
 #+begin_src emacs-lisp :tangle yes
 (use-package kdl-mode
-  :ensure t
-  :defer t)
+  :ensure t)
 #+end_src
 
 *** CSV mode
@@ -853,7 +916,6 @@ Shows the keybind and the function name when a key is pressed
 #+begin_src emacs-lisp :tangle yes
 (use-package csv-mode
   :ensure t
-  :defer t
   :mode "\\.[ct]sv\\'"
   :config
  (setq csv-separators '("," ";" "\t")))
@@ -897,6 +959,9 @@ The first letter input, except x, c, h, m, g will be translated to C-c <key>.
     '("b n" . next-buffer)
     '("b p" . previous-buffer)
     '("f s" . save-buffer)
+    '("f p" . (lambda ()
+                (interactive)
+  	      (find-file "~/Projects/GitHub/zeromacs/config.org")))
     '("o p" . dirvish-side)
     '("o t" . vterm)
     '("o o" . (lambda ()
@@ -952,3 +1017,7 @@ To edit files with sudo using Emacs, append ~/sudo::~ before the file path and t
 #+begin_example
 /ssh:user@test-server|sudo::/etc/fstab
 #+end_example
+
+** Preview unsaved changes
+
+Use =diff-buffer-with-file= to see what's new in the buffer that's not on the disk. This is specially useful when you run a command by accident and not sure what's changed
