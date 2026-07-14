@@ -882,6 +882,15 @@ Shows the keybind and the function name when a key is pressed. We set the variab
 
 #+end_src
 
+** Magit
+
+Enable =visual-line-mode= in all magit buffers so long lines like commit messages and diffs wrap at the window edge instead of running off screen.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package magit
+  :hook (magit-mode . visual-line-mode))
+#+end_src
+
 ** Age encryption
 
 Age is an encryption package, in this section, we will setup support age encrypted files so they can behave like regular files in Emacs but will remain encrypted on the disk. With the default setup, the user's default =id_rsa= ssh keys will be used for encryption and decryption. I prefer using my own set of keys that are stored on the Yubikey, also using SSH keys requires keys with no passphrase.
