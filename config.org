@@ -782,13 +782,16 @@ Keyboard layout setup for qwerty
    '("<escape>" . ignore)))
 #+end_src
 
-Initialize meow
+Initialize meow. Set vterm and Custom mode to insert mode by default
 
 #+begin_src emacs-lisp
 (use-package meow
   :config
   (meow-setup)
-  (meow-global-mode 1))
+  (add-to-list 'meow-mode-state-list '(vterm-mode . insert))
+  (add-to-list 'meow-mode-state-list '(Custom-mode . insert))
+  (meow-global-mode 1)
+  (meow-setup-indicator))
 #+end_src
 
 **** Treesitter support
@@ -962,42 +965,47 @@ I like doom keybinds and try to replicate them as long as they don't interfere w
 The first letter input, except x, c, h, m, g will be translated to C-c <key>.
 
 #+begin_src emacs-lisp :tangle yes
-  (meow-leader-define-key
-    '("b i" . ibuffer)
-    '("b k" . kill-buffer-and-window)
-    '("b n" . next-buffer)
-    '("b p" . previous-buffer)
-    '("f s" . save-buffer)
-    '("f p" . (lambda ()
-                (interactive)
-  	      (find-file "~/Projects/GitHub/zeromacs/config.org")))
-    '("o p" . dirvish-side)
-    '("o t" . vterm)
-    '("o o" . (lambda ()
-  	      (interactive)
-  	      (find-file (concat org-directory "/Tasks.org"))))
+(meow-leader-define-key
+  '("b i" . ibuffer)
+  '("b k" . kill-buffer-and-window)
+  '("b n" . next-buffer)
+  '("b p" . previous-buffer)
+  '("f s" . save-buffer)
+  '("f p" . (lambda ()
+              (interactive)
+            (find-file "~/Projects/GitHub/zeromacs/config.org")))
+  '("o p" . dirvish-side)
+  '("o t" . vterm)
+  '("o o" . (lambda ()
+            (interactive)
+            (find-file (concat org-directory "/Tasks.org"))))
 
-    '("w l" . windmove-right)
-    '("w h" . windmove-left)
-    '("w j" . windmove-down)
-    '("w k" . windmove-up)
+  '("w l" . windmove-right)
+  '("w h" . windmove-left)
+  '("w j" . windmove-down)
+  '("w k" . windmove-up)
 
-    ;; p = preview with consult, not project
-    '("p b" . consult-buffer)
-    '("p f" . consult-fd)
-    '("p l" . consult-line)
-    '("p m" . consult-mark)
-    '("p p" . consult-org-heading)
-    '("p r" . consult-recent-file)
-    '("p s" . consult-yasnippet)
-    '("p t" . consult-theme)
-  )
+  ;; p = preview with consult, not project
+  '("p b" . consult-buffer)
+  '("p f" . consult-fd)
+  '("p l" . consult-line)
+  '("p m" . consult-mark)
+  '("p p" . consult-org-heading)
+  '("p r" . consult-recent-file)
+  '("p s" . consult-yasnippet)
+  '("p t" . consult-theme)
+)
 #+end_src
 
-Override the default search with consult line
+My own keybinds
 
 #+begin_src emacs-lisp :tangle yes
-(keymap-global-set "C-s" 'consult-line)
+(keymap-global-unset "C-s")
+(keymap-global-unset "C-r")
+(keymap-global-set "C-s C-d" 'consult-line)
+(keymap-global-set "C-s C-s" 'isearch-forward)
+(keymap-global-set "C-s C-r" 'isearch-backward)
+(which-key-add-key-based-replacements "C-s" "search")
 (keymap-global-set "C-c c" 'org-capture)
 #+end_src
 
