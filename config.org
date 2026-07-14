@@ -686,6 +686,27 @@ Corfu is a package for buffer completion.
   ;; useful beyond Corfu.
   (read-extended-command-predicate #'command-completion-default-include-p))
 #+end_src
+** Embark
+
+Embark allows actions on the options in the minibuffer list or the in buffer list, It is like right click context menu
+
+#+begin_src emacs-lisp :tangle yes
+(use-package embark
+  :ensure t
+  :bind
+  (("C-." . embark-act)
+   ("C-;" . embark-dwim)
+   ("C-h B" . embark-bindings))
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command)
+   (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+(use-package embark-consult
+  :ensure t)
+#+end_src
 
 ** Snippets
 
@@ -900,6 +921,10 @@ Set dirvish attributes
 (setq dirvish-attributes
   (append 
     '(vc-state subtree-state nerd-icons collapse)))
+
+(setq dirvish-side-attributes
+  (append
+    '(nerd-icons collapse)))
 #+end_src
 
 Dirvish over tramp. This will be a really annoying experience if a Yubikey based SSH key is used that requires touch
