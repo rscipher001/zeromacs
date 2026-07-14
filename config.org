@@ -259,9 +259,9 @@ By default Emacs doesn't use the system clipboard and that makes copy paste stuf
 Add clock to minibuffer
 
 #+begin_src emacs-lisp :tangle yes
-  (display-battery-mode 1)
-  (display-time-mode 1)
-  (setq display-time-and-date t)
+(display-battery-mode 1)
+(display-time-mode 1)
+(setq display-time-and-date t)
 #+end_src
 
 ** Enable better window management
@@ -423,16 +423,13 @@ This is the file where captured notes would be saved, this variable is used by t
 
 #+begin_src emacs-lisp :tangle yes
 (setq org-capture-templates
-  '(
-     ("t" "Todo" entry
-       (file+headline "Tasks.org" "Inbox")
-       "* TODO %?\n  %i\n  %a")
+  '(("t" "Todo" entry
+      (file+headline "Tasks.org" "Inbox")
+      "* TODO %?\n  %i\n  %a")
 
-     ("j" "Journal" entry
-       (file+olp+datetree "Journal.org")
-       "* %?\nEntered on %U\n  %i\n  %a")
-  )
-)
+      ("j" "Journal" entry
+        (file+olp+datetree "Journal.org")
+        "* %?\nEntered on %U\n  %i\n  %a")))
 #+end_src
 
 *** Setup a better org-refile system
@@ -540,10 +537,10 @@ It works with built-in =fido-vertical-mode= as well.
 This basic setup is sufficient but it is possible to change what information is shown for file list
 
 #+begin_src emacs-lisp
-  (use-package marginalia
-    :ensure t
-    :init
-    (marginalia-mode 1))
+(use-package marginalia
+  :ensure t
+  :init
+  (marginalia-mode 1))
 #+end_src
 
 *** Orderless
@@ -673,8 +670,7 @@ For beginners it is a good idea to use Yasnippet for both snippet management and
 (use-package yasnippet
   :ensure t
   :init
-  (yas-global-mode 1)
-)
+  (yas-global-mode 1))
 #+end_src
 
 A collection of snippets
@@ -799,9 +795,9 @@ Initialize meow. Set vterm and Custom mode to insert mode by default
 The package =meow-tree-sitter= provides support for treesitter with meow.
 
 #+begin_src emacs-lisp
-  (use-package meow-tree-sitter
-    :config
-    (meow-tree-sitter-register-defaults))
+(use-package meow-tree-sitter
+  :config
+  (meow-tree-sitter-register-defaults))
 #+end_src
 
 ** Doom Packges
@@ -830,36 +826,35 @@ Register dirvish and disable reuse session so multiple dirvish buffers are not c
 #+end_src
 
 #+begin_src emacs-lisp :tangle yes
-  (use-package dirvish
-    :ensure t
-    :init
-    (dirvish-override-dired-mode 1)
-    :config
-    (setq dirvish-reuse-session nil)
-    (dirvish-side-follow-mode 1)
-    :custom
-    (dirvish-quick-access-entries
-      '(("h" "~/"                                            "Home")
-        ("d" "~/Downloads/"                                  "Downloads")
-        ("m" "/mnt/"                                         "Drives")
-        ("s" "/ssh:zero-oracle"                              "SSH server")
-        ("o" "~/Projects/Orgfiles"                           "Org Files")
-        ("c" "~/Projects/GitHub/zeromacs/config.org"         "Zeromacs Config")
-        ("e" "/sudo:root@localhost:/etc"                     "Modify program settings")
-        ("t" "~/.local/share/Trash/files/"                   "TrashCan")))
-    :bind
-    (("C-c d" . dirvish)
-      :map dirvish-mode-map
-      ("h" . dired-up-directory)
-      ("j" . dired-next-line)
-      ("k" . dired-previous-line)
-      ("l" . dired-find-file)
-      ("TAB" . dirvish-subtree-toggle)
-      ("M-s" . dirvish-setup-menu)
-      ("F" . dirvish-layout-toggle)
-      ("?" . dirvish-dispatch)
-      ("i" . dirvish-quick-access)
-    ))
+(use-package dirvish
+  :ensure t
+  :init
+  (dirvish-override-dired-mode 1)
+  :config
+  (setq dirvish-reuse-session nil)
+  (dirvish-side-follow-mode 1)
+  :custom
+  (dirvish-quick-access-entries
+    '(("h" "~/"                                            "Home")
+      ("d" "~/Downloads/"                                  "Downloads")
+      ("m" "/mnt/"                                         "Drives")
+      ("s" "/ssh:zero-oracle"                              "SSH server")
+      ("o" "~/Projects/Orgfiles"                           "Org Files")
+      ("c" "~/Projects/GitHub/zeromacs/config.org"         "Zeromacs Config")
+      ("e" "/sudo:root@localhost:/etc"                     "Modify program settings")
+      ("t" "~/.local/share/Trash/files/"                   "TrashCan")))
+  :bind
+  (("C-c d" . dirvish)
+    :map dirvish-mode-map
+    ("h" . dired-up-directory)
+    ("j" . dired-next-line)
+    ("k" . dired-previous-line)
+    ("l" . dired-find-file)
+    ("TAB" . dirvish-subtree-toggle)
+    ("M-s" . dirvish-setup-menu)
+    ("F" . dirvish-layout-toggle)
+    ("?" . dirvish-dispatch)
+    ("i" . dirvish-quick-access)))
 #+end_src
 
 Set dirvish attributes
@@ -867,12 +862,12 @@ Set dirvish attributes
 #+begin_src emacs-lisp :tangle yes
 (setq dirvish-attributes
   (append 
-	   '(vc-state subtree-state nerd-icons collapse)))
+    '(vc-state subtree-state nerd-icons collapse)))
 #+end_src
 
 ** Keycast mode
 
-Shows the keybind and the function name when a key is pressed. We set the variable =keycast-mode-line-format= with =%K= to override the default variable that shows a GUI key with a text key
+Shows the keybind and the function name when a key is pressed. We set the variable =keycast-mode-line-format= with =%K=. The default is =%k= which shows a GUI button. This change converted that to a TUI botton.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package keycast
@@ -880,9 +875,7 @@ Shows the keybind and the function name when a key is pressed. We set the variab
   :init
   (setq keycast-mode-line-format "%10s%K%c%r")
   :config
-  (keycast-mode-line-mode 1)
-)
-
+  (keycast-mode-line-mode 1))
 #+end_src
 
 ** Magit
@@ -928,9 +921,10 @@ Age is an encryption package, in this section, we will setup support age encrypt
 #+begin_src emacs-lisp :tangle yes
 (use-package csv-mode
   :ensure t
-  :mode "\\.[ct]sv\\'"
+  :mode
+  "\\.[ct]sv\\'"
   :config
- (setq csv-separators '("," ";" "\t")))
+  (setq csv-separators '("," ";" "\t")))
 #+end_src
 
 * Custom functions
@@ -946,15 +940,15 @@ When working on the config, emacs has to be rested over and over and over. It is
   "Reload emacs config"
   (interactive)
   (load-file (expand-file-name
-     "init.el"
-     user-emacs-directory)))
+    "init.el"
+    user-emacs-directory)))
 #+end_src
 
 ** Copy buffer path
 
 #+begin_src emacs-lisp :tangle no
 (defun my/yank-buffer-path ()
-    (interactive)
+  (interactive)
 )
 #+end_src
 
@@ -1002,11 +996,11 @@ My own keybinds
 #+begin_src emacs-lisp :tangle yes
 (keymap-global-unset "C-s")
 (keymap-global-unset "C-r")
-(keymap-global-set "C-s C-d" 'consult-line)
-(keymap-global-set "C-s C-s" 'isearch-forward)
-(keymap-global-set "C-s C-r" 'isearch-backward)
+(keymap-global-set   "C-s C-d" 'consult-line)
+(keymap-global-set   "C-s C-r" 'isearch-backward)
+(keymap-global-set   "C-s C-s" 'isearch-forward)
+(keymap-global-set   "C-c c" 'org-capture)
 (which-key-add-key-based-replacements "C-s" "search")
-(keymap-global-set "C-c c" 'org-capture)
 #+end_src
 
 * Tips
