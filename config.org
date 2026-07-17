@@ -539,8 +539,30 @@ It is also possible to set a global keybind to open the primary org file
 
 ** Org Babel
 
+Org babel is used for code execution. There are a few defaults and it makes sense to enable them by default.
+
+*** Permission
+
+Org mode asks for permission everytime you want to use execute code. Let's disable that.
+
 #+begin_src emacs-lisp :tangle yes
 (setq org-confirm-babel-evaluate nil)
+#+end_src
+
+*** Language
+
+Org mode only allows execution of elisp code by default, let's add other languages
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-babel-load-languages
+  '((emacs-lisp . t)
+    (C . t)
+    (calc . t)
+    (js . t)
+    (python . t)
+    (shell . t)
+    (sql . t)
+    (sqlite . t)))
 #+end_src
 
 ** Org Timers
