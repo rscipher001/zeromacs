@@ -92,14 +92,14 @@ It is also possible to set third party themes as long as the package is installe
 
 When Emacs runs as a daemon, the config loads before any graphical frame exists, so =load-theme= applies against a frame-less (or terminal) display and the colors come out wrong in later =emacsclient= frames. The fix is to delay theme loading until the first client frame is created using =server-after-make-frame-hook=, and only load it directly when Emacs is started normally.
 
-#+begin_src emacs-lisp
-(use-package nord-theme
+#+begin_src emacs-lisp :tangle yes
+(use-package doric-themes
   :ensure t
   :config
   (defun my/load-theme (&rest _)
     "Load the theme, resetting any previously enabled themes first."
     (mapc #'disable-theme custom-enabled-themes)
-    (load-theme 'nord t))
+    (load-theme 'doric-earth t))
   (if (daemonp)
       (add-hook 'server-after-make-frame-hook #'my/load-theme)
     (my/load-theme)))
@@ -135,6 +135,7 @@ We can enable relative line numbers by setting the =display-line-numbers-mode= v
 
 #+begin_src emacs-lisp
 (setq display-line-numbers-type 'relative)
+(column-number-mode)
 #+end_src
 
 =global-display-line-numbers-mode= enables line numbers everywhere, including the terminal, file browser, help pages and everywhere else and that's not what we want so we will use hooks to enable the line numbers for only the certain modes. Hooks can be used to to set or trigger something conditionally
@@ -180,9 +181,9 @@ This will enable it everywhere including terminals like vterm which is annoying 
 
 ** Enable auto pairs
 
-Electric-pair-mode auto completes the parenthesis, brackets, quotes, etc.
+Electric-pair-mode auto completes the parenthesis, brackets, quotes, etc. I keep it disabled, it is very annoying sometimes
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 (electric-pair-mode 1)
 #+end_src
 
@@ -241,13 +242,13 @@ The height is roughly =font size * 10=. Height 120 would be similar to height 12
 
 #+begin_src emacs-lisp
 (set-face-attribute 'default nil
-		    :family "Iosevka"
+		    :family "Iosevka NF"
 		    :height 150
 		    :weight 'regular)
 
 ;; Monospace font
 (set-face-attribute 'fixed-pitch nil
-		    :family "Iosevka"
+		    :family "Iosevka NF"
 		    :height 150
 		    :weight 'regular)
 
@@ -266,6 +267,12 @@ By default Emacs doesn't use the system clipboard and that makes copy paste stuf
 (setq select-enable-clipboard t)
 #+end_src
 
+** Save place in file
+
+#+begin_src emacs-lisp :tangle yes
+(save-place-mode 1)
+#+end_src
+
 ** Add Battery & Clock to Minibuffer
 
 Add clock to minibuffer
@@ -273,7 +280,6 @@ Add clock to minibuffer
 #+begin_src emacs-lisp :tangle yes
 (display-battery-mode 1)
 (display-time-mode 1)
-(setq display-time-and-date t)
 #+end_src
 
 ** Enable better window management
@@ -313,6 +319,53 @@ The inlay suggestions features is built into Emacs and can be enabled with
 #+BEGIN_SRC emacs-lisp
 (global-completion-preview-mode 1)
 #+END_SRC
+
+* Extra
+
+Extra goodies because why not
+
+** Prettification
+
+Think of this like ligatures but on steroids
+
+#+begin_src emacs-lisp :tangle yes
+  (setq prettify-symbols-unprettify-at-point t)
+  (setq prettify-symbols-alist '(
+    ("==" . "≡")
+    ("===" . "≣")
+    ("!=" . "≠")
+    ("!==" . "≢")
+    (">=" . "≥")
+    ("<=" . "≤")
+    ("->" . "-->")
+    ("<-" . "←")
+    ("<->" . "↔")
+    ("<=>" . "⇔")
+    ("->>" . "↠")
+    ("<<-" . "↞")
+    ("~>" . "↝")
+    ("|>" . "▷")
+    ("<|" . "◁")
+    ("map" . "↦")
+    ("lambda" . "λ")
+    ("alpha" . "α")
+    ("beta" . "β")
+    ("gamma" . "γ")
+    ("delta" . "δ")
+    ("pi" . "π")
+    ("sum" . "∑")
+    ("..." . "…")
+    ("::" . "∷")
+    (">>" . "»")
+    ("<<" . "«")
+    ("sqrt" . "√")
+    ("integral" . "∫")
+    ("forall" . "∀")
+    ("exists" . "∃")
+    (";;" . "#")))
+
+  (add-hook 'text-mode-hook #'prettify-symbols-mode)
+#+end_src
 
 * Org mode
 
@@ -490,6 +543,16 @@ It is also possible to set a global keybind to open the primary org file
 (setq org-confirm-babel-evaluate nil)
 #+end_src
 
+** Org Timers
+
+Org mode as a timer option, we will use that to replace our timer app.
+
+The function for setting time is =org-timer-set-timer=. This is silent, to set the sound use
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-clock-sound (concat user-emacs-directory "org-timer-alert.wav"))
+#+end_src
+
 * Packages
 
 This is a list of third party packages as well as first party packages that are very useful for enhancing the UX.
@@ -639,53 +702,39 @@ If you want to setup consult properly, you should read the consult package docum
 Corfu is a package for buffer completion.
 
 #+begin_src emacs-lisp
-(use-package corfu
-  :ensure t
-  ;; Optional customizations
-  ;; :custom
-  ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
-  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
-  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
-  ;; (corfu-on-exact-match 'insert) ;; Configure handling of exact matches
+  (use-package corfu
+    :ensure t
+    ;; Enable Corfu only for certain modes. See also `global-corfu-modes'.
+    ;; :hook ((prog-mode . corfu-mode)
+    ;;        (shell-mode . corfu-mode)
+    ;;        (eshell-mode . corfu-mode))
 
-  ;; Enable Corfu only for certain modes. See also `global-corfu-modes'.
-  ;; :hook ((prog-mode . corfu-mode)
-  ;;        (shell-mode . corfu-mode)
-  ;;        (eshell-mode . corfu-mode))
+    :init
+    (global-corfu-mode 1)
 
-  :init
+    ;; Enable optional extension modes:
+    (corfu-history-mode)
+    (corfu-popupinfo-mode))
 
-  ;; Recommended: Enable Corfu globally.  Recommended since many modes provide
-  ;; Capfs and Dabbrev can be used globally (M-/).  See also the customization
-  ;; variable `global-corfu-modes' to exclude certain modes.
-  (global-corfu-mode 1)
+  (use-package emacs
+    :custom
+    ;; TAB cycle if there are only few candidates
+    ;; (completion-cycle-threshold 3)
 
-  ;; Enable optional extension modes:
-  ;; (corfu-history-mode)
-  ;; (corfu-popupinfo-mode)
-  )
+    ;; Enable indentation+completion using the TAB key.
+    ;; `completion-at-point' is often bound to M-TAB.
+    (tab-always-indent 'complete)
 
-;; A few more useful configurations...
-(use-package emacs
-  :custom
-  ;; TAB cycle if there are only few candidates
-  ;; (completion-cycle-threshold 3)
+    ;; Emacs 30 and newer: Disable Ispell completion function.
+    ;; Try `cape-dict' as an alternative.
+    (text-mode-ispell-word-completion nil)
 
-  ;; Enable indentation+completion using the TAB key.
-  ;; `completion-at-point' is often bound to M-TAB.
-  (tab-always-indent 'complete)
-
-  ;; Emacs 30 and newer: Disable Ispell completion function.
-  ;; Try `cape-dict' as an alternative.
-  (text-mode-ispell-word-completion nil)
-
-  ;; Hide commands in M-x which do not apply to the current mode.  Corfu
-  ;; commands are hidden, since they are not used via M-x. This setting is
-  ;; useful beyond Corfu.
-  (read-extended-command-predicate #'command-completion-default-include-p))
+    ;; Hide commands in M-x which do not apply to the current mode.  Corfu
+    ;; commands are hidden, since they are not used via M-x. This setting is
+    ;; useful beyond Corfu.
+    (read-extended-command-predicate #'command-completion-default-include-p))
 #+end_src
+
 ** Embark
 
 Embark allows actions on the options in the minibuffer list or the in buffer list, It is like right click context menu
@@ -892,15 +941,16 @@ Register dirvish and disable reuse session so multiple dirvish buffers are not c
   (setq dirvish-reuse-session nil)
   (dirvish-side-follow-mode 1)
   :custom
-  (dirvish-quick-access-entries
-    '(("h" "~/"                                            "Home")
-      ("d" "~/Downloads/"                                  "Downloads")
-      ("m" "/mnt/"                                         "Drives")
-      ("s" "/ssh:zero-oracle:~"                            "SSH server")
-      ("o" "~/Projects/Orgfiles"                           "Org Files")
-      ("c" "~/Projects/GitHub/zeromacs/config.org"         "Zeromacs Config")
+  (dirvish-quick-access-entries '(
+      ("d" "~/Downloads"                                   "Downloads")
       ("e" "/sudo:root@localhost:/etc"                     "Modify program settings")
-      ("t" "~/.local/share/Trash/files/"                   "TrashCan")))
+      ("h" "~/"                                            "Home")
+      ("m" "/mnt"                                          "Drives")
+      ("n" "/mnt/data/shared/NixOS"                        "NixOS")
+      ("o" "~/Projects/Orgfiles"                           "Org Files")
+      ("s" "/ssh:zero-oracle:~"                            "SSH server")
+      ("t" "~/.local/share/Trash/files/"                   "TrashCan")
+  ))
   :bind
   (("C-c d" . dirvish)
     :map dirvish-mode-map
@@ -1068,6 +1118,15 @@ We can also add visual notification for encryption and decryption, useful when u
   (setq csv-separators '("," ";" "\t")))
 #+end_src
 
+** Themes
+
+List of third party themes
+
+#+begin_src emacs-lisp :tangle yes
+(use-package doric-themes
+  :ensure t)
+#+end_src
+
 * Custom functions
 
 Custom functions I use to automate repetitive tasks.
@@ -1174,3 +1233,15 @@ To edit files with sudo using Emacs, append ~/sudo::~ before the file path and t
 ** Preview unsaved changes
 
 Use =diff-buffer-with-file= to see what's new in the buffer that's not on the disk. This is specially useful when you run a command by accident and not sure what's changed
+
+** Menu and Context Menu
+
+Even if Menubar is disabled, you can open it with =F10= for global menu and =S-F10= (Shift + F10) for context menu. I used it randomly because it helps in discoving new things
+
+** World Clock
+
+Emacs has a =world-clock= command. It shows a list of cities pre-configures, to update the list.
+
+#+begin_src emacs-lisp :tangle yes
+(setq zoneinfo-style-world-list '(("America/New_York" "New York") ("Asia/Calcutta" "New Delhi")))
+#+end_src
