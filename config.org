@@ -389,7 +389,17 @@ Enable =visual-line-mode= so word-wrap is enabled and =C-a=, =C-e= and other lin
 
 ** Modern look
 
-We will use a third party package for it.
+- Hide the bold, italic, etc markers
+- Render superscript and subscript values
+- Don't treat every _ as subscript
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-hide-emphasis-markers t)
+(setq org-pretty-entities t)
+(setq org-use-sub-superscripts "{}")
+#+end_src
+
+For modern look, we will use a third party package.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package org-modern
@@ -400,12 +410,6 @@ We will use a third party package for it.
   (add-hook 'org-mode-hook #'org-modern-mode 90))
 #+end_src
 
-Hide the bold, italic, etc markers and make the render superscript and subscript values
-
-#+begin_src emacs-lisp :tangle yes
-(setq org-hide-emphasis-markers t)
-(setq org-pretty-entities t)
-#+end_src
 
 ** Set Org Directory
 
