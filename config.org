@@ -273,9 +273,9 @@ By default Emacs doesn't use the system clipboard and that makes copy paste stuf
 (save-place-mode 1)
 #+end_src
 
-** Add Battery & Clock to Minibuffer
+** Add Battery & Clock to Mode Line
 
-Add clock to minibuffer
+Show the battery status and the clock in the mode line
 
 #+begin_src emacs-lisp :tangle yes
 (display-battery-mode 1)
@@ -326,11 +326,11 @@ Extra goodies because why not
 
 ** Prettification
 
-Think of this like ligatures but on steroids
+Think of this like ligatures but on steroids. Note that =prettify-symbols-alist= is a buffer-local variable so it has to be set with =setq-default=, a plain =setq= would only change it in the buffer that is current while the config loads.
 
 #+begin_src emacs-lisp :tangle yes
   (setq prettify-symbols-unprettify-at-point t)
-  (setq prettify-symbols-alist '(
+  (setq-default prettify-symbols-alist '(
     ("==" . "≡")
     ("===" . "≣")
     ("!=" . "≠")
@@ -467,7 +467,7 @@ I like a keeping =#+LAST_UPDATED:= heading in my org files, I add a cusotm funct
 Add a before save hook to update the =LAST_UPDATED= field
 
 #+begin_src emacs-lisp :tangle yes
-(add-hook 'before-save-hook #'my/org-update-last-modified)
+(add-hook 'before-save-hook #'my/org-update-last-updated)
 #+end_src
 
 ** Disable src indentation
@@ -538,7 +538,7 @@ It is also possible to set a global keybind to open the primary org file
 (global-set-key (kbd "C-c o") 
   (lambda ()
     (interactive)
-      (find-file (concat org-directory "Tasks.org"))))
+      (find-file (concat org-directory "/Tasks.org"))))
 #+end_src
 
 ** Org Babel
@@ -555,18 +555,19 @@ Org mode asks for permission everytime you want to use execute code. Let's disab
 
 *** Language
 
-Org mode only allows execution of elisp code by default, let's add other languages
+Org mode only allows execution of elisp code by default, let's add other languages. The =org-babel-do-load-languages= function is used instead of =setq= because setting the variable directly skips loading the language backends, so executing the blocks would fail.
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-babel-load-languages
-  '((emacs-lisp . t)
-    (C . t)
-    (calc . t)
-    (js . t)
-    (python . t)
-    (shell . t)
-    (sql . t)
-    (sqlite . t)))
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (C . t)
+   (calc . t)
+   (js . t)
+   (python . t)
+   (shell . t)
+   (sql . t)
+   (sqlite . t)))
 #+end_src
 
 ** Org Timers
@@ -809,6 +810,16 @@ Consult integration for searching and inserting snippets, used by the =SPC p s= 
   :defer t)
 #+end_src
 
+** Vterm
+
+Vterm is a fully featured terminal emulator for Emacs. It is used by the =SPC o t= keybind and the meow insert state setup below. It compiles a native module on the first run which requires =cmake= and =libtool= to be available on the system.
+
+#+begin_src emacs-lisp
+(use-package vterm
+  :ensure t
+  :defer t)
+#+end_src
+
 ** Modal Editing
 
 There are a few modal editing options available for Emacs. =evil-mode= is the most famous one that emulates vim but I prefer using meow over evil. Meow is fundamentally different than =evil-mode= and designed to work with Emacs. 
@@ -995,12 +1006,10 @@ Set dirvish attributes
 
 #+begin_src emacs-lisp :tangle yes
 (setq dirvish-attributes
-  (append 
-    '(vc-state subtree-state nerd-icons collapse)))
+  '(vc-state subtree-state nerd-icons collapse))
 
 (setq dirvish-side-attributes
-  (append
-    '(nerd-icons collapse)))
+  '(nerd-icons collapse))
 #+end_src
 
 Dirvish over tramp. This will be a really annoying experience if a Yubikey based SSH key is used that requires touch
@@ -1146,12 +1155,7 @@ We can also add visual notification for encryption and decryption, useful when u
 
 ** Themes
 
-List of third party themes
-
-#+begin_src emacs-lisp :tangle yes
-(use-package doric-themes
-  :ensure t)
-#+end_src
+Third party themes go here. The =doric-themes= package is already installed and loaded in the [[*Load a dark theme][Load a dark theme]] section.
 
 * Custom functions
 
