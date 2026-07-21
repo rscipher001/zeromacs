@@ -1198,6 +1198,7 @@ The first letter input, except x, c, h, m, g will be translated to C-c <key>.
   '("f p" . (lambda ()
               (interactive)
             (find-file "~/Projects/GitHub/zeromacs/config.org")))
+  '("f y" . my/yank-buffer-path)
   '("o p" . dirvish-side)
   '("o t" . vterm)
   '("o o" . (lambda ()
