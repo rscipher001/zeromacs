@@ -1,7 +1,7 @@
 #+TITLE: Zeromacs Literate Config
 #+STARTUP: fold
 #+PROPERTY: header-args:emacs-lisp :tangle yes
-#+LAST_UPDATED: [2026-07-11 Sat 14:41]
+#+LAST_UPDATED: [2026-07-21 Tue 22:57]
 
 * Introduction
 
@@ -70,7 +70,7 @@ Emacs defaults are not designed for 2025 so let's fix that first.
 
 ** Lexical Binding
 
-This is required, lexical scope is more of a programming topic than emacs, I will skip it here.
+This is required, lexical scope is more of a programming topic, just put this line on the top of the config, you can learn about lexical scope later.
 
 #+begin_src emacs-lisp
 ;;; config.el --- Zeromacs Emacs config -*- lexical-binding: t; -*-
@@ -86,11 +86,11 @@ Before anything else, let's use the Emacs' =load-theme= function to set a theme
 
 You can also use *Menu* > *Options* > *Customize Emacs* > *Customize Themes*
 
-If you want a light theme, you can try =modus-operandi-tinted=. You are free to try any other theme as well but I like only these two from the built-in themes.
+If you want a light theme, you can try =modus-operandi-tinted=. You are free to try any other theme as well.
 
 It is also possible to set third party themes as long as the package is installed.
 
-When Emacs runs as a daemon, the config loads before any graphical frame exists, so =load-theme= applies against a frame-less (or terminal) display and the colors come out wrong in later =emacsclient= frames. The fix is to delay theme loading until the first client frame is created using =server-after-make-frame-hook=, and only load it directly when Emacs is started normally.
+When Emacs runs as a daemon, the config loads before any graphical frame exists, so =load-theme= applies against a frame-less display and the colors come out wrong in later =emacsclient= frames. The fix is to delay theme loading until the first client frame is created using =server-after-make-frame-hook=, and only load it directly when Emacs is started normally.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package doric-themes
@@ -99,7 +99,7 @@ When Emacs runs as a daemon, the config loads before any graphical frame exists,
   (defun my/load-theme (&rest _)
     "Load the theme, resetting any previously enabled themes first."
     (mapc #'disable-theme custom-enabled-themes)
-    (load-theme 'doric-earth t))
+    (load-theme 'doric-obsidian t))
   (if (daemonp)
       (add-hook 'server-after-make-frame-hook #'my/load-theme)
     (my/load-theme)))
@@ -111,6 +111,15 @@ The toolbar is enabled by default but it is not useful, even for beginners. The 
 
 #+begin_src emacs-lisp
 (tool-bar-mode -1)
+#+end_src
+
+*** On the Android Phone
+
+The toolbar can be moved to the bottom and modifier keys can be enabled.
+
+#+begin_src emacs-lisp :tangle no
+(setopt tool-bar-position 'bottom)
+(modifier-bar-mode 1)
 #+end_src
 
 ** Disable the menubar
@@ -131,25 +140,34 @@ We can enable line numbers everywhere with
 (global-display-line-numbers-mode 1)
 #+end_src
 
-We can enable relative line numbers by setting the =display-line-numbers-mode= variable. =setq= function is used for setting variables
+We can enable relative line numbers by setting the =display-line-numbers-mode= variable. =setq= and =setopt= (preferred) function is used for setting variables
 
 #+begin_src emacs-lisp
-(setq display-line-numbers-type 'relative)
+(setopt display-line-numbers-type 'relative)
+(setopt display-line-numbers-grow-only t)
 (column-number-mode)
 #+end_src
 
-=global-display-line-numbers-mode= enables line numbers everywhere, including the terminal, file browser, help pages and everywhere else and that's not what we want so we will use hooks to enable the line numbers for only the certain modes. Hooks can be used to to set or trigger something conditionally
+=global-display-line-numbers-mode= enables line numbers everywhere, including the terminal, file browser, help pages and everywhere else and that's not what we want so we will use hooks to enable the line numbers for only the certain modes. Hooks can be used to set or trigger something conditionally
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'conf-mode-hook 'display-line-numbers-mode)
+;; (add-hook 'text-mode-hook 'display-line-numbers-mode)
 #+end_src
 
-Here we have used ='prog-mode-hook=, all the programming languages related modes extend this mode so line numbers will automatically be enabled for all the programming languaets. The ='conf-mode-hook= is for config files, it will also enable the line number for config files.
+Here we have used ='prog-mode-hook=, all the programming languages related modes extend this mode so line numbers will automatically be enabled for all the programming languages. The ='conf-mode-hook= is for config files, it will also enable the line number for config files. We can use =text-mode-hook= for all the text files and it would automatically do that for config files as well as markdown and org files.
+
+The other and simpler solution for enabling the line number in files is enabling when we open a file
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'find-file-hook #'display-line-numbers-mode)
+(add-hook 'lisp-interaction-mode-hook #'display-line-numbers-mode)
+#+end_src
 
 ** Enable recent files
 
-A very basic feature but it becomes really important once we have the full setup and start using multiple projects in Emacs.
+Enable recent files
 
 #+begin_src emacs-lisp
 (recentf-mode 1)
@@ -171,12 +189,12 @@ The line highlight feature can be enabled everywhere with
 (global-hl-line-mode 1)
 #+end_src
 
-This will enable it everywhere including terminals like vterm which is annoying because it flickers. Use hooks to enable it for only for programming files, config files and org files.
+This will enable it everywhere including terminals like vterm which is annoying because it flickers. Use hooks to enable it for only for programming files and text files.
 
 #+begin_src emacs-lisp
-(add-hook 'prog-mode-hook 'hl-line-mode)
-(add-hook 'conf-mode-hook 'hl-line-mode)
-(add-hook 'org-mode-hook 'hl-line-mode)
+(use-package hl-line
+:hook
+((prog-mode text-mode) . hl-line-mode))
 #+end_src
 
 ** Enable auto pairs
@@ -184,15 +202,19 @@ This will enable it everywhere including terminals like vterm which is annoying 
 Electric-pair-mode auto completes the parenthesis, brackets, quotes, etc. I keep it disabled, it is very annoying sometimes
 
 #+begin_src emacs-lisp :tangle no
-(electric-pair-mode 1)
+(use-package electric
+:config
+(electric-pair-mode 1))
 #+end_src
 
 ** Enable which key
 
 Shows the available command whey you press a partial key chord like =C-c=
 
-#+begin_src emacs-lisp
-(which-key-mode 1)
+#+begin_src emacs-lisp :tangle yes
+(use-package which-key
+:config
+(which-key-mode 1))
 #+end_src
 
 ** Disable scrollbars
@@ -208,7 +230,7 @@ This is subjective and I don't like scrollbar in Emacs
 In some cases the emacs asks user to type =yes= or =no=, like closing buffer with unsaved content, etc. This setting allows user to press =y= or =n= for the same.
 
 #+begin_src emacs-lisp
-(setq use-short-answers t)
+(setopt use-short-answers t)
 #+end_src
 
 ** Enable recursive minibuffer
@@ -216,7 +238,7 @@ In some cases the emacs asks user to type =yes= or =no=, like closing buffer wit
 When you want to paste something in Emacs, it uses a list of thins you copied in the past. To access that list we use minibuffer. Now, if you are already in minibuffer (e.g. M-x) and you want to paste something, you can't open another minibuffer. Enabling recursive minibuffer fixes that and you can access minibuffer from minibuffer.
 
 #+begin_src emacs-lisp
-(setq enable-recursive-minibuffers t)
+(setopt enable-recursive-minibuffers t)
 #+end_src
 
 ** Enable Custom file
@@ -224,7 +246,7 @@ When you want to paste something in Emacs, it uses a list of thins you copied in
 Emacs allows changing settings from the menus and saves those settings in a custom file and you can use *Menu* > *Options* > *Customize Emacs* and here you have a lot of options to customize emacs. You can either *Apply* a customization or *Apply and Save*. When you use the *Apply and Save* option, emacs writes the changes to your ~init.el~ file. In practice, this is annoying. We can tell Emacs to use a custom file for customization, the ~custom-file~ variable is used for that, it is an existing variable in Emacs. To set it
 
 #+begin_src emacs-lisp
-(setq custom-file (concat user-emacs-directory "custom.el"))
+(setopt custom-file (concat user-emacs-directory "custom.el"))
 (load custom-file t t)
 #+end_src
 
@@ -264,7 +286,7 @@ The height is roughly =font size * 10=. Height 120 would be similar to height 12
 By default Emacs doesn't use the system clipboard and that makes copy paste stuff in and out of Emacs impossible, enabling this feature sync the primary keyboard in the system with Emacs clipboard (kill-ring)
 
 #+begin_src emacs-lisp
-(setq select-enable-clipboard t)
+(setopt select-enable-clipboard t)
 #+end_src
 
 ** Save place in file
@@ -287,7 +309,9 @@ Show the battery status and the clock in the mode line
 The ~windmove~ package is a built-in package that provides functions for nativating to windows by direction
 
 #+begin_src emacs-lisp :tangle yes
-(windmove-mode 1)
+(use-package windmove
+:config
+(windmove-mode 1))
 #+end_src
 
 ** Always add a newline the end of the file
@@ -295,7 +319,7 @@ The ~windmove~ package is a built-in package that provides functions for nativat
 This will add a new line at the end of the file
 
 #+begin_src emacs-lisp :tangle yes
-(setq require-final-newline t)
+(setopt require-final-newline t)
 #+end_src
 
 ** Highlight uncommited lines
@@ -308,68 +332,69 @@ This will highlight the uncommited changes
   :hook ((prog-mode conf-mode) . diff-hl-mode))
 #+end_src
 
-* Completions
+** Treesitter Support (Emacs 31)
 
-Emacs as built-in support for completions
-
-** Inlay Suggestions
-
-The inlay suggestions features is built into Emacs and can be enabled with
-
-#+BEGIN_SRC emacs-lisp
-(global-completion-preview-mode 1)
-#+END_SRC
-
-* Extra
-
-Extra goodies because why not
-
-** Prettification
-
-Think of this like ligatures but on steroids. Note that =prettify-symbols-alist= is a buffer-local variable so it has to be set with =setq-default=, a plain =setq= would only change it in the buffer that is current while the config loads.
+Treesitter is supported since Emacs 29. Let's set the treesitter mode to be the default in Emacs 31
 
 #+begin_src emacs-lisp :tangle yes
-  (setq prettify-symbols-unprettify-at-point t)
-  (setq-default prettify-symbols-alist '(
-    ("==" . "≡")
-    ("===" . "≣")
-    ("!=" . "≠")
-    ("!==" . "≢")
-    (">=" . "≥")
-    ("<=" . "≤")
-    ("->" . "-->")
-    ("<-" . "←")
-    ("<->" . "↔")
-    ("<=>" . "⇔")
-    ("->>" . "↠")
-    ("<<-" . "↞")
-    ("~>" . "↝")
-    ("|>" . "▷")
-    ("<|" . "◁")
-    ("map" . "↦")
-    ("lambda" . "λ")
-    ("alpha" . "α")
-    ("beta" . "β")
-    ("gamma" . "γ")
-    ("delta" . "δ")
-    ("pi" . "π")
-    ("sum" . "∑")
-    ("..." . "…")
-    ("::" . "∷")
-    (">>" . "»")
-    ("<<" . "«")
-    ("sqrt" . "√")
-    ("integral" . "∫")
-    ("forall" . "∀")
-    ("exists" . "∃")
-    (";;" . "#")))
+(setopt treesit-enabled-modes t)
+#+end_src
 
-  (add-hook 'text-mode-hook #'prettify-symbols-mode)
+** Prettify symbols
+
+Think of this like ligatures but on steroids. Note that =prettify-symbols-alist= is a buffer-local variable so it has to be set with =setq-default=, a plain =setopt= would only change it in the buffer that is current while the config loads.
+
+#+begin_src emacs-lisp :tangle yes
+(setopt prettify-symbols-unprettify-at-point t)
+(setq-default prettify-symbols-alist '(
+  ("==" . "≡")
+  ("===" . "≣")
+  ("!=" . "≠")
+  ("!==" . "≢")
+  (">=" . "≥")
+  ("<=" . "≤")
+  ("->" . "-->")
+  ("<-" . "←")
+  ("<->" . "↔")
+  ("<=>" . "⇔")
+  ("->>" . "↠")
+  ("<<-" . "↞")
+  ("~>" . "↝")
+  ("|>" . "▷")
+  ("<|" . "◁")
+  ("map" . "↦")
+  ("lambda" . "λ")
+  ("alpha" . "α")
+  ("beta" . "β")
+  ("gamma" . "γ")
+  ("delta" . "δ")
+  ("pi" . "π")
+  ("sum" . "∑")
+  ("..." . "…")
+  ("::" . "∷")
+  (">>" . "»")
+  ("<<" . "«")
+  ("sqrt" . "√")
+  ("integral" . "∫")
+  ("forall" . "∀")
+  ("exists" . "∃")
+  (";;" . "#")))
+
+(add-hook 'prog-mode-hook #'prettify-symbols-mode)
+(add-hook 'text-mode-hook #'prettify-symbols-mode)
 #+end_src
 
 * Org mode
 
 Org mode does a lot of things. This is some sane defaults to make it look modern and have add some improvements
+
+** Set Org Directory
+
+Location of org files, it is used by org capture and org agenda.
+
+#+begin_src emacs-lisp :tangle yes
+(setopt org-directory "~/Projects/Orgfiles")
+#+end_src
 
 ** Indent according to structure
 
@@ -394,9 +419,9 @@ Enable =visual-line-mode= so word-wrap is enabled and =C-a=, =C-e= and other lin
 - Don't treat every _ as subscript
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-hide-emphasis-markers t)
-(setq org-pretty-entities t)
-(setq org-use-sub-superscripts "{}")
+(setopt org-hide-emphasis-markers t)
+(setopt org-pretty-entities t)
+(setopt org-use-sub-superscripts '{})
 #+end_src
 
 For modern look, we will use a third party package.
@@ -410,21 +435,12 @@ For modern look, we will use a third party package.
   (add-hook 'org-mode-hook #'org-modern-mode 90))
 #+end_src
 
-
-** Set Org Directory
-
-Location of org files, it is used by org capture and org agenda.
-
-#+begin_src emacs-lisp :tangle yes
-(setq org-directory "~/Projects/Orgfiles")
-#+end_src
-
 ** Task management
 
 Save the time when task is marked as done, this can be enabled per org file with =#+STARTUP: logdone=
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-log-done 'time)
+(setopt org-log-done 'time)
 #+end_src
 
 Recursively scan org files for org agenda
@@ -432,7 +448,7 @@ Recursively scan org files for org agenda
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-refresh-agenda-files (&rest _)
   "Rescan `org-directory' so new files are included in the agenda."
-  (setq org-agenda-files (directory-files-recursively org-directory "\\.org$")))
+  (setopt org-agenda-files (directory-files-recursively org-directory "\\.org$")))
 #+end_src
 
 Run this function before org agenda is loaded
@@ -446,13 +462,13 @@ Run this function before org agenda is loaded
 Add my own org todo keywords
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-todo-keywords
+(setopt org-todo-keywords
   '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
 #+end_src
 
 ** Last Updated Hook
 
-I like a keeping =#+LAST_UPDATED:= heading in my org files, I add a cusotm function and a save hook to update it.
+I like a keeping =#+LAST_UPDATED:= heading in my org files, I add a custom function and a save hook to update it.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-update-last-updated ()
@@ -480,23 +496,23 @@ Add a before save hook to update the =LAST_UPDATED= field
 
 ** Org capture
 
-Org caputre has a few parts. The core parts are
+Org capture has a few parts. The core parts are
 
 - Capture templates
 - Refile system
 
-*** Setup org caputre notes files
+*** Setup org capture notes files
 
 This is the file where captured notes would be saved, this variable is used by the default capture template.
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-default-notes-file (concat org-directory "/Notes.org"))
+(setopt org-default-notes-file (concat org-directory "/Notes.org"))
 #+end_src
 
 *** Setup capture templates
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-capture-templates
+(setopt org-capture-templates
   '(("t" "Todo" entry
       (file+headline "Tasks.org" "Inbox")
       "* TODO %?\n  %i\n  %a")
@@ -511,7 +527,7 @@ This is the file where captured notes would be saved, this variable is used by t
 Org-refile allows moving the tasks from the capture area to the proper place where they belong. By default it only allows moving tasks to top level headings. Change that to 5 levels so when moving a captured item, we get full flexibility of selecting the heading where it belongs
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-refile-targets '((org-agenda-files . (:maxlevel . 5))))
+(setopt org-refile-targets '((org-agenda-files . (:maxlevel . 5))))
 #+end_src
 
 The above command may not work if you have files that are recently created or you want to include all the org files. To fix this we will use ~advice-add~ for org-refile, this function will run before org-refile and add add the org files to ~org-agenda-files~ variable.
@@ -550,7 +566,7 @@ Org babel is used for code execution. There are a few defaults and it makes sens
 Org mode asks for permission everytime you want to use execute code. Let's disable that.
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-confirm-babel-evaluate nil)
+(setopt org-confirm-babel-evaluate nil)
 #+end_src
 
 *** Language
@@ -577,7 +593,7 @@ Org mode as a timer option, we will use that to replace our timer app.
 The function for setting time is =org-timer-set-timer=. This is silent, to set the sound use
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-clock-sound (concat user-emacs-directory "org-timer-alert.wav"))
+(setopt org-clock-sound (concat user-emacs-directory "org-timer-alert.wav"))
 #+end_src
 
 * Packages
@@ -594,33 +610,25 @@ The basic setup is sufficient for most packages. If extra setup is needed then i
 
 ** Completion
 
-The completion packages fall into two categories in Emacs
+The completion packages fall into three categories in Emacs
 
 - In buffer completion
 - Minibuffer completion
 - Both
 
-*** Minbuffer
+*** Minibuffer
 
 **** Vertico
 
 Vertico is a third party package, it is used for enabling vertical list in minibuffer. The name stands for =VERTICal Interactive COmpletion=.
 
-***** Built-in solutions
-
-We can enable the vertical minibuffer with built-in =fido-vertical-mode=.
+We can enable the vertical minibuffer with the built-in =fido-vertical-mode=.
 
 #+begin_src emacs-lisp :tangle no
 (fido-vertical-mode 1)
 #+end_src
 
-In the next step we will enable *Marginalia* and =fido-vertical-mode= works fine with it.
-
-Why are we adding *Vertico* if =fido-vertical-mode= already does what we want?
-
-Because, the built-in =fido-vertical-mode= doesn't work with third party completion styles, we will see that in when we will setup *Orderless*.
-
-***** Setup
+So why add *Vertico* if =fido-vertical-mode= already does what we want? Because the built-in =fido-vertical-mode= doesn't work with third party completion styles, we will see that when we setup *Orderless*. Marginalia (set up next) works fine with either.
 
 This basic setup is sufficient.
 
@@ -631,12 +639,7 @@ This basic setup is sufficient.
   (vertico-mode 1))
 #+end_src
 
-*** Buffer
-
-These packages are used for inbuffer completion
-
-** Minibuffer Enhancements
-*** Marginalia
+**** Marginalia
 
 Marginalia shows help information alongside the list in the minibuffer based on what information is being displayed like
 
@@ -656,7 +659,7 @@ This basic setup is sufficient but it is possible to change what information is 
   (marginalia-mode 1))
 #+end_src
 
-*** Orderless
+**** Orderless
 
 Orderless is a completion style package, it adds an =orderless= completion style. Emacs uses completion styles to narrow down a list against a query.
 
@@ -673,7 +676,7 @@ This basic setup is sufficient.
   (completion-pcm-leading-wildcard t)) ;; Emacs 31: partial-completion behaves like substring
 #+end_src
 
-*** Consult
+**** Consult
 
 Consult adds live preview feature as well as a ton of custom functions that starts with =consult-=.
 
@@ -691,17 +694,17 @@ If you want to setup consult properly, you should read the consult package docum
   ;; register formatting, adds thin separator lines, register sorting and hides
   ;; the window mode line.
   (advice-add #'register-preview :override #'consult-register-window)
-  (setq register-preview-delay 0.5)
+  (setopt register-preview-delay 0.5)
 
   ;; Use Consult to select xref locations with preview
-  (setq xref-show-xrefs-function #'consult-xref
+  (setopt xref-show-xrefs-function #'consult-xref
         xref-show-definitions-function #'consult-xref)
   :config
   ;; Optionally configure preview. The default value
   ;; is 'any, such that any key triggers the preview.
-  ;; (setq consult-preview-key 'any)
-  ;; (setq consult-preview-key "M-.")
-  ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
+  ;; (setopt consult-preview-key 'any)
+  ;; (setopt consult-preview-key "M-.")
+  ;; (setopt consult-preview-key '("S-<down>" "S-<up>"))
   ;; For some commands and buffer sources it is useful to configure the
   ;; :preview-key on a per-command basis using the `consult-customize' macro.
   (consult-customize
@@ -715,7 +718,7 @@ If you want to setup consult properly, you should read the consult package docum
 
   ;; Optionally configure the narrowing key.
   ;; Both < and C-+ work reasonably well.
-  (setq consult-narrow-key "<") ;; "C-+"
+  (setopt consult-narrow-key "<") ;; "C-+"
 
   ;; Optionally make narrowing help available in the minibuffer.
   ;; You may want to use `embark-prefix-help-command' or which-key instead.
@@ -723,8 +726,9 @@ If you want to setup consult properly, you should read the consult package docum
 )
 #+end_src
 
-** Buffer Completion
-*** Corfu
+*** In-buffer
+
+**** Corfu
 
 Corfu is a package for buffer completion.
 
@@ -762,6 +766,14 @@ Corfu is a package for buffer completion.
     (read-extended-command-predicate #'command-completion-default-include-p))
 #+end_src
 
+**** Completion Preview
+
+Emacs has built-in support for in-buffer completion previews (inlay suggestions). Enable it with
+
+#+BEGIN_SRC emacs-lisp
+(global-completion-preview-mode 1)
+#+END_SRC
+
 ** Embark
 
 Embark allows actions on the options in the minibuffer list or the in buffer list, It is like right click context menu
@@ -774,7 +786,7 @@ Embark allows actions on the options in the minibuffer list or the in buffer lis
    ("C-;" . embark-dwim)
    ("C-h B" . embark-bindings))
   :init
-  (setq prefix-help-command #'embark-prefix-help-command)
+  (setopt prefix-help-command #'embark-prefix-help-command)
    (add-to-list 'display-buffer-alist
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
@@ -820,6 +832,21 @@ Vterm is a fully featured terminal emulator for Emacs. It is used by the =SPC o 
   :defer t)
 #+end_src
 
+** IRC (ERC)
+
+ERC configuration for chats
+
+#+begin_src emacs-lisp :tangle no
+  (use-package erc
+    :ensure t
+    :defer t
+    ;; :server "irc.libera.chat"
+    :custom
+    (setopt erc-modules
+            (seq-union '(sasl nicks bufbar nickbar scrolltobottom)
+                       erc-modules)))
+#+end_src
+
 ** Modal Editing
 
 There are a few modal editing options available for Emacs. =evil-mode= is the most famous one that emulates vim but I prefer using meow over evil. Meow is fundamentally different than =evil-mode= and designed to work with Emacs. 
@@ -835,7 +862,7 @@ Keyboard layout setup for qwerty
 
 #+begin_src emacs-lisp
 (defun meow-setup ()
-  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+  (setopt meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
   (meow-motion-define-key
    '("j" . meow-next)
    '("k" . meow-prev)
@@ -943,7 +970,7 @@ The package =meow-tree-sitter= provides support for treesitter with meow.
   (meow-tree-sitter-register-defaults))
 #+end_src
 
-** Doom Packges
+** Doom Packages
 
 Doom modeline is a nice modeline package for modeline customization. I am not using it yet because it conflicts with keycast package.
 
@@ -962,7 +989,7 @@ Register dirvish and disable reuse session so multiple dirvish buffers are not c
 (use-package dired
   :defer t
   :config
-  (setq dired-listing-switches
+  (setopt dired-listing-switches
         "-l --almost-all --human-readable --group-directories-first --no-group")
   ;; this command is useful when you want to close the window of `dirvish-side'
   ;; automatically when opening a file
@@ -975,7 +1002,6 @@ Register dirvish and disable reuse session so multiple dirvish buffers are not c
   :init
   (dirvish-override-dired-mode 1)
   :config
-  (setq dirvish-reuse-session nil)
   (dirvish-side-follow-mode 1)
   :custom
   (dirvish-quick-access-entries '(
@@ -1005,10 +1031,10 @@ Register dirvish and disable reuse session so multiple dirvish buffers are not c
 Set dirvish attributes
 
 #+begin_src emacs-lisp :tangle yes
-(setq dirvish-attributes
+(setopt dirvish-attributes
   '(vc-state subtree-state nerd-icons collapse))
 
-(setq dirvish-side-attributes
+(setopt dirvish-side-attributes
   '(nerd-icons collapse))
 #+end_src
 
@@ -1026,20 +1052,20 @@ Dirvish over tramp. This will be a really annoying experience if a Yubikey based
    '(:application tramp :protocol "ssh")
    'remote-direct-async-process)
   ;; Tips to speed up connections
-  (setq tramp-verbose 0)
-  (setq tramp-chunksize 2000)
-  (setq tramp-ssh-controlmaster-options nil))
+  (setopt tramp-verbose 0)
+  (setopt tramp-chunksize 2000)
+  (setopt tramp-ssh-controlmaster-options nil))
 #+end_src
 
 ** Keycast mode
 
-Shows the keybind and the function name when a key is pressed. We set the variable =keycast-mode-line-format= with =%K=. The default is =%k= which shows a GUI button. This change converted that to a TUI botton.
+Shows the keybind and the function name when a key is pressed. We set the variable =keycast-mode-line-format= with =%K=. The default is =%k= which shows a GUI button. This change converted that to a TUI button.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package keycast
   :ensure t
   :init
-  (setq keycast-mode-line-format "%10s%K%c%r")
+  (setopt keycast-mode-line-format "%10s%K%c%r")
   :config
   (keycast-mode-line-mode 1))
 #+end_src
@@ -1150,7 +1176,17 @@ We can also add visual notification for encryption and decryption, useful when u
   :mode
   "\\.[ct]sv\\'"
   :config
-  (setq csv-separators '("," ";" "\t")))
+  (setopt csv-separators '("," ";" "\t")))
+#+end_src
+
+*** Markdown Mode
+
+New and experimental markdown mode
+
+#+begin_src emacs-lisp :tangle yes
+(use-package markdown-ts-mode
+  :ensure nil
+  :defer t)
 #+end_src
 
 ** Themes
@@ -1163,7 +1199,7 @@ Custom functions I use to automate repetitive tasks.
 
 ** Reload config
 
-When working on the config, emacs has to be rested over and over and over. It is possible to switch to init.el and and eval the buffer to reload the config. We will do exactly that but add a helper method to the config
+When working on the config, emacs has to be restarted over and over and over. It is possible to switch to init.el and and eval the buffer to reload the config. We will do exactly that but add a helper method to the config
 
 #+begin_src emacs-lisp
 (defun my/reload-config ()
@@ -1176,10 +1212,16 @@ When working on the config, emacs has to be rested over and over and over. It is
 
 ** Copy buffer path
 
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp :tangle yes
 (defun my/yank-buffer-path ()
+  "Saves current buffer path to kill ring"
   (interactive)
-)
+  (let ((path (buffer-file-name)))
+    (if path
+      (progn
+        (kill-new path)
+        (message "Copied: %s" path)) 
+      (message "Buffer is not a file"))))
 #+end_src
 
 * Keybinds
@@ -1274,5 +1316,5 @@ Even if Menubar is disabled, you can open it with =F10= for global menu and =S-F
 Emacs has a =world-clock= command. It shows a list of cities pre-configures, to update the list.
 
 #+begin_src emacs-lisp :tangle yes
-(setq zoneinfo-style-world-list '(("America/New_York" "New York") ("Asia/Calcutta" "New Delhi")))
+(setopt zoneinfo-style-world-list '(("America/New_York" "New York") ("Asia/Calcutta" "New Delhi")))
 #+end_src
