@@ -1,7 +1,7 @@
 #+TITLE: Zeromacs Literate Config
 #+STARTUP: fold
 #+PROPERTY: header-args:emacs-lisp :tangle yes
-#+LAST_UPDATED: [2026-07-21 Tue 22:57]
+#+LAST_UPDATED: [2026-07-22 Wed 10:49]
 
 * Introduction
 
@@ -382,6 +382,28 @@ Think of this like ligatures but on steroids. Note that =prettify-symbols-alist=
 
 (add-hook 'prog-mode-hook #'prettify-symbols-mode)
 (add-hook 'text-mode-hook #'prettify-symbols-mode)
+#+end_src
+
+** Backup files
+
+Emacs creates three kinds of extra files next to the file you are editing:
+- =file~= (backups)
+- =#file#= (auto-saves)
+- =.#file= (lock files)
+
+This is annoying because it clutters directories and these files show up in git operations. Instead of disabling them, let's relocate all three into a single =.backups= directory under =user-emacs-directory=.
+
+#+begin_src emacs-lisp :tangle yes
+(let ((backup-dir (concat user-emacs-directory ".backups/")))
+  ;; Emacs won't create this for us; without it backups silently fall back
+  ;; to sitting next to the original file.
+  (make-directory backup-dir t)
+  ;; file~ backups
+  (setopt backup-directory-alist `(("." . ,backup-dir)))
+  ;; #file# auto-saves
+  (setopt auto-save-file-name-transforms `((".*" ,backup-dir t)))
+  ;; .#file lock files (Emacs 28+)
+  (setopt lock-file-name-transforms `((".*" ,backup-dir t))))
 #+end_src
 
 * Org mode
@@ -837,14 +859,14 @@ Vterm is a fully featured terminal emulator for Emacs. It is used by the =SPC o 
 ERC configuration for chats
 
 #+begin_src emacs-lisp :tangle no
-  (use-package erc
-    :ensure t
-    :defer t
-    ;; :server "irc.libera.chat"
-    :custom
-    (setopt erc-modules
-            (seq-union '(sasl nicks bufbar nickbar scrolltobottom)
-                       erc-modules)))
+(use-package erc
+  :ensure t
+  :defer t
+  ;; :server "irc.libera.chat"
+  :custom
+  (setopt erc-modules
+          (seq-union '(sasl nicks bufbar nickbar scrolltobottom)
+                     erc-modules)))
 #+end_src
 
 ** Modal Editing
@@ -1057,6 +1079,14 @@ Dirvish over tramp. This will be a really annoying experience if a Yubikey based
   (setopt tramp-ssh-controlmaster-options nil))
 #+end_src
 
+** Direnv
+
+#+begin_src emacs-lisp :tangle yes
+(use-package direnv
+  :config
+  (direnv-mode))
+#+end_src
+
 ** Keycast mode
 
 Shows the keybind and the function name when a key is pressed. We set the variable =keycast-mode-line-format= with =%K=. The default is =%k= which shows a GUI button. This change converted that to a TUI button.
@@ -1067,7 +1097,7 @@ Shows the keybind and the function name when a key is pressed. We set the variab
   :init
   (setopt keycast-mode-line-format "%10s%K%c%r")
   :config
-  (keycast-mode-line-mode 1))
+  (keycast-mode-line-mode -1))
 #+end_src
 
 ** Magit
