@@ -1,7 +1,7 @@
 #+TITLE: Zeromacs Literate Config
 #+STARTUP: fold
 #+PROPERTY: header-args:emacs-lisp :tangle yes
-#+LAST_UPDATED: [2026-07-22 Wed 10:49]
+#+LAST_UPDATED: [2026-07-30 Thu 09:41]
 
 * Introduction
 
@@ -616,6 +616,16 @@ The function for setting time is =org-timer-set-timer=. This is silent, to set t
 
 #+begin_src emacs-lisp :tangle yes
 (setopt org-clock-sound (concat user-emacs-directory "org-timer-alert.wav"))
+#+end_src
+
+** Org Roam
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-roam-directory "~/Projects/Orgfiles")
+(use-package org-roam
+  :after org
+  :config
+  (org-roam-setup))
 #+end_src
 
 * Packages
@@ -1254,6 +1264,15 @@ When working on the config, emacs has to be restarted over and over and over. It
       (message "Buffer is not a file"))))
 #+end_src
 
+** Open Config
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/open-config ()
+  "Open config.org for editing"
+  (interactive)
+  (find-file (expand-file-name "config.org" user-emacs-directory)))
+#+end_src
+
 * Keybinds
 
 I like doom keybinds and try to replicate them as long as they don't interfere with any of the existing keybinds or frequently used keybinds. I am using meow to add keybinds instead of adding them to Emacs
@@ -1267,9 +1286,7 @@ The first letter input, except x, c, h, m, g will be translated to C-c <key>.
   '("b n" . next-buffer)
   '("b p" . previous-buffer)
   '("f s" . save-buffer)
-  '("f p" . (lambda ()
-              (interactive)
-            (find-file "~/Projects/GitHub/zeromacs/config.org")))
+  '("f p" . my/open-config)
   '("f y" . my/yank-buffer-path)
   '("o p" . dirvish-side)
   '("o t" . vterm)
