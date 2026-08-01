@@ -1,4 +1,5 @@
 ;;; init.el --- Description -*- lexical-binding: t; -*-
-(org-babel-load-file
- (locate-user-emacs-file "config.org"))
 
+(org-babel-load-file
+  (locate-user-emacs-file "config.org"))
+ 
