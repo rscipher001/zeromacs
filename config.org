@@ -1,7 +1,7 @@
 #+TITLE: Zeromacs Literate Config
 #+STARTUP: fold
 #+PROPERTY: header-args:emacs-lisp :tangle yes
-#+LAST_UPDATED: [2026-07-30 Thu 09:41]
+#+LAST_UPDATED: [2026-08-01 Sat 10:15]
 
 * Introduction
 
@@ -1232,6 +1232,23 @@ New and experimental markdown mode
 ** Themes
 
 Third party themes go here. The =doric-themes= package is already installed and loaded in the [[*Load a dark theme][Load a dark theme]] section.
+
+** RSS Feeds
+
+We will use elfeed for RSS feed
+
+#+begin_src emacs-lisp :tangle yes
+  (use-package elfeed
+    :ensure t
+    :defer t
+    :init
+    (setopt elfeed-feeds
+      '("https://rahuljuliato.com/rss.xml"
+        "https://joshblais.com/index.xml"
+        "https://karthinks.com/index.xml"
+        "https://systemcrafters.net/rss/news.xml"
+    )))
+#+end_src
 
 * Custom functions
 
