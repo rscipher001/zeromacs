@@ -1,7 +1,7 @@
 #+TITLE: Zeromacs Literate Config
 #+STARTUP: fold
 #+PROPERTY: header-args:emacs-lisp :tangle yes
-#+LAST_UPDATED: [2026-08-08 Sat 09:05]
+#+LAST_UPDATED: [2026-08-08 Sat 17:09]
 
 * Introduction
 
@@ -1308,6 +1308,76 @@ When working on the config, emacs has to be restarted over and over and over. It
   "Open config.org for editing"
   (interactive)
   (find-file (expand-file-name "config.org" user-emacs-directory)))
+#+end_src
+
+** Pandoc File Type Conversion
+
+Pandoc is a package that allows conversion between markdown, org, and many other file formats.
+
+*** Markdown to Org
+
+Uses pandoc to convert markdown to org
+
+#+begin_src emacs-lisp :tangle yes
+  (defun my/md-to-org()
+    "Convert current markdown file to org"
+    (interactive)
+    (let ((file (buffer-file-name)))
+      (unless (and file (string-match-p "\\.md\\'" file))
+        (user-error "Current buffer is not a markdown file"))
+      (unless (executable-find "pandoc")
+        (user-error "Pandoc is not installed"))
+      (when (buffer-modified-p)
+        (user-error "Please save the changes"))
+
+      ;; The file is ready for conversion, no blockers
+      (let ((org-file (concat (file-name-sans-extension file) ".org")))
+        (when (and (file-exists-p org-file)
+  		 (not (yes-or-no-p (format "%s exists; overwrite? " org-file))))
+          (user-error "Aborted"))
+        (let ((status (call-process "pandoc" nil nil nil
+  				  "--from" "markdown"
+  				  "--to" "org"
+  				  "--output" org-file
+  				  file)))
+          (unless (zerop status)
+  	  (user-error "Pandoc conversion failed (status %s)" status))
+          (kill-buffer (current-buffer))
+          (find-file org-file)
+          (message "Converted %s -> %s" (file-name-nondirectory file) (file-name-nondirectory org-file))))))
+#+end_src
+
+*** Org to markdown
+
+Uses pandoc to convert org to markdown
+
+#+begin_src emacs-lisp :tangle yes
+  (defun my/org-to-md()
+    "Convert current org file to markdown"
+    (interactive)
+    (let ((file (buffer-file-name)))
+      (unless (and file (string-match-p "\\.org\\'" file))
+        (user-error "Current buffer is not a org file"))
+      (unless (executable-find "pandoc")
+        (user-error "Pandoc is not installed"))
+      (when (buffer-modified-p)
+        (user-error "Please save the changes"))
+
+      ;; The file is ready for conversion, no blockers
+      (let ((md-file (concat (file-name-sans-extension file) ".md")))
+        (when (and (file-exists-p md-file)
+  		 (not (yes-or-no-p (format "%s exists; overwrite? " md-file))))
+          (user-error "Aborted"))
+        (let ((status (call-process "pandoc" nil nil nil
+  				  "--from" "org"
+  				  "--to" "markdown"
+  				  "--output" md-file
+  				  file)))
+          (unless (zerop status)
+  	  (user-error "Pandoc conversion failed (status %s)" status))
+          (kill-buffer (current-buffer))
+          (find-file md-file)
+          (message "Converted %s -> %s" (file-name-nondirectory file) (file-name-nondirectory md-file))))))
 #+end_src
 
 * Keybinds
