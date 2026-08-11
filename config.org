@@ -56,12 +56,17 @@ The minibuffer is used when user types =M-x= for running commands or =C-x C-f= f
 
 * Init
 
-Add that to your =~/.config/emacs/init.el= and put this file as =~/.config/emacs/config/org=. This will ensure the config.org is automatically loaded as emacs config.
+Add that to your =~/.config/emacs/init.el= and put this file at
+=~/.config/emacs/config.org=. This will ensure the config.org is automatically
+loaded as emacs config.
+
+=org-babel-load-file= tangles the org file to =config.el= and loads that,
+re-tangling only when the org file is the newer of the two.
 
 #+begin_src emacs-lisp :tangle no
 ;;; init.el --- Entry file for emacs config -*- lexical-binding: t; -*-
 (org-babel-load-file
- (expand-file-name "config.org" user-emacs-directory))
+ (locate-user-emacs-file "config.org"))
 #+end_src
 
 * Basic configuration with sane defaults
