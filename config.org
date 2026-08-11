@@ -256,10 +256,13 @@ Emacs allows changing settings from the menus and saves those settings in a cust
 
 #+begin_src emacs-lisp
 (setopt custom-file (concat user-emacs-directory "custom.el"))
-(load custom-file t t)
 #+end_src
 
-You can also use =load= function to load your config from different files and make it modular. The =t t= are two parameters to load function, if the =custom.el= is missing it then Emacs won't throw an error and it won't show a warning message either.
+Setting the variable is all that happens here.  Actually *loading* the file is
+deferred to the [[*Load the custom file][very end of this config]], and that ordering matters -- see there
+for why.
+
+You can also use the =load= function to load your config from different files and make it modular.
 
 ** Set Custom Font
 
@@ -941,6 +944,14 @@ The nick doubles as the SASL account name, and the server and port are needed ag
   ;; Show new buffers in the current window instead of a split.
   (erc-interactive-display 'buffer)
 
+  ;; Don't leave query and server buffers behind after /quit.  These two lived
+  ;; in `custom.el' until the custom file was moved to the end of this config,
+  ;; at which point they would have started overriding this section instead of
+  ;; the other way round.  Moved here for the same single-source-of-truth
+  ;; reason as the autojoin list.
+  (erc-kill-queries-on-quit t)
+  (erc-kill-server-buffer-on-quit t)
+
   ;; Emphasize buttonized text in notices.
   :custom-face
   (erc-notice-face ((t (:slant italic :weight unspecified))))
@@ -1572,4 +1583,31 @@ Emacs has a =world-clock= command. It shows a list of cities pre-configures, to 
 
 #+begin_src emacs-lisp :tangle yes
 (setopt zoneinfo-style-world-list '(("America/New_York" "New York") ("Asia/Calcutta" "New Delhi")))
+#+end_src
+
+* Load the custom file
+
+This is deliberately the last thing the config does.
+
+=custom.el= is written by the Customize UI -- *Menu* > *Options* > *Customize
+Emacs* > *Apply and Save*.  Loading it early, which is the obvious place and
+where it used to live, means every =setopt= in the rest of this file runs
+afterwards and silently overwrites whatever you saved through the UI.  You get
+no error and no warning; the setting simply does not stick, and the Customize
+buffer keeps cheerfully reporting the value you chose.
+
+That bit me once already: =erc-autojoin-channels-alist= was set in both places
+with different channel lists, and because =custom.el= loaded first, the copy in
+this file won without either one admitting it.  Loading last inverts the rule
+into something predictable -- *whatever you set through the UI wins* -- which is
+the behaviour you want from a UI whose entire purpose is overriding things.
+
+The tradeoff is that a stale entry in =custom.el= can now quietly defeat an edit
+made here.  If a setting refuses to take effect, grep =custom.el= first.
+
+The =t t= arguments mean: do not error if the file is missing, and do not print
+a load message.
+
+#+begin_src emacs-lisp :tangle yes
+(load custom-file t t)
 #+end_src
