@@ -659,12 +659,22 @@ The function for setting time is =org-timer-set-timer=. This is silent, to set t
 
 ** Org Roam
 
+=org-roam-setup= is an obsolete alias -- org-roam 2.0 renamed it, and calling it
+prints a byte-compiler warning.  =org-roam-db-autosync-mode= is the current
+name, and being a real minor mode it also takes an explicit argument.
+
+The directory is the same tree as =org-directory=, so it is derived from that
+rather than written out a second time; the two drifting apart would put the
+roam database somewhere the agenda never looks.
+
 #+begin_src emacs-lisp :tangle yes
-(setq org-roam-directory "~/Projects/Orgfiles")
 (use-package org-roam
+  :ensure t
   :after org
+  :custom
+  (org-roam-directory org-directory)
   :config
-  (org-roam-setup))
+  (org-roam-db-autosync-mode 1))
 #+end_src
 
 * Packages
