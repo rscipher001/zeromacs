@@ -1,7 +1,7 @@
 #+TITLE: Zeromacs Literate Config
 #+STARTUP: fold
 #+PROPERTY: header-args:emacs-lisp :tangle yes
-#+LAST_UPDATED: [2026-08-08 Sat 17:09]
+#+LAST_UPDATED: [2026-08-11 Tue 11:48]
 
 * Introduction
 
@@ -404,6 +404,14 @@ This is annoying because it clutters directories and these files show up in git 
   (setopt auto-save-file-name-transforms `((".*" ,backup-dir t)))
   ;; .#file lock files (Emacs 28+)
   (setopt lock-file-name-transforms `((".*" ,backup-dir t))))
+#+end_src
+
+** Auto Revert
+
+It means when the file changes on the disk, update the open buffer
+
+#+begin_src emacs-lisp :tangle yes
+(global-auto-revert-mode 1)
 #+end_src
 
 * Org mode
@@ -866,20 +874,85 @@ Vterm is a fully featured terminal emulator for Emacs. It is used by the =SPC o 
 
 ** IRC (ERC)
 
-ERC configuration for chats
+I only use one network, Libera.Chat, over TLS with SASL.
+
+*** Identity
+
+The nick doubles as the SASL account name, and the server and port are needed again by =my/erc-libera= below, so they are named once here.
 
 #+begin_src emacs-lisp :tangle yes
-  (use-package erc
-    :ensure t
-    :defer t
-    :custom
-    (setopt
-     erc-hide-list '("JOIN" "PART" "QUIT" "NICK" "MODE")
-     erc-nick "zeromacs"
-     erc-autojoin-channels-alist '(("libera.chat" "#emacs"))
-     erc-modules
-            (seq-union '(sasl nicks bufbar nickbar scrolltobottom)
-                       erc-modules)))
+(defconst my/erc-nick "zeromacs"
+  "Libera.Chat nickname, and the SASL account name it maps to.")
+
+(defconst my/erc-server "irc.libera.chat"
+  "Libera.Chat server to connect to.")
+
+(defconst my/erc-port 6697
+  "Libera's TLS port.  It does not serve plaintext on any port.")
+#+end_src
+
+*** Core settings
+
+#+begin_src emacs-lisp :tangle yes
+(use-package erc
+  :ensure t
+  :defer t
+  :custom
+  (erc-nick my/erc-nick)
+  (erc-server my/erc-server)
+  (erc-port my/erc-port)
+
+  ;; Protect me from accidentally sending excess lines.
+  (erc-inhibit-multiline-input t)
+  (erc-send-whitespace-lines t)
+  (erc-ask-about-multiline-input t)
+
+  ;; Wait a bit longer between automatic reconnect attempts.
+  (erc-server-reconnect-timeout 30)
+
+  ;; Show new buffers in the current window instead of a split.
+  (erc-interactive-display 'buffer)
+
+  ;; Emphasize buttonized text in notices.
+  :custom-face
+  (erc-notice-face ((t (:slant italic :weight unspecified))))
+
+  ;; Prefer SASL to NickServ.  Deliberately no `bufbar' or `nickbar': I don't
+  ;; want the channel-list or member-list side windows.  This one belongs in
+  ;; `:config' rather than `:custom' because `seq-union' has to see the real
+  ;; default, which only exists once `erc' has loaded.
+  :config
+  (setopt erc-modules (seq-union '(sasl) erc-modules)))
+#+end_src
+
+*** SASL authentication
+
+#+begin_src emacs-lisp :tangle yes
+(use-package erc-sasl
+  :custom
+  (erc-sasl-user my/erc-nick)
+  (erc-sasl-auth-source-function #'erc-auth-source-search))
+#+end_src
+
+Connect with the command below, never with plain =M-x erc=.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/erc-libera ()
+  "Connect to Libera.Chat over TLS, authenticating with SASL."
+  (interactive)
+  (erc-tls :server my/erc-server :port my/erc-port :nick my/erc-nick))
+#+end_src
+
+*** Channels
+
+Joined automatically on connecting.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package erc-join
+  :custom
+  (erc-autojoin-channels-alist
+   '((Libera.Chat "#emacs" "#erc" "#linux" "#systemcrafters"
+                  "#freebsd" "#org-mode"))))
 #+end_src
 
 ** Modal Editing
