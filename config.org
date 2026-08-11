@@ -351,47 +351,66 @@ Treesitter is supported since Emacs 29. Let's set the treesitter mode to be the 
 
 ** Prettify symbols
 
-Think of this like ligatures but on steroids. Note that =prettify-symbols-alist= is a buffer-local variable so it has to be set with =setq-default=, a plain =setopt= would only change it in the buffer that is current while the config loads.
+Think of this like ligatures but on steroids.
+
+=setq-default= is the wrong tool here, even though =prettify-symbols-alist= is
+buffer-local.  Major modes that care about this feature -- =js-mode=,
+=python-mode=, =emacs-lisp-mode= and friends -- assign the variable *buffer
+locally in their own mode function*, which runs after the default value is
+consulted and therefore throws the default away.  So a =setq-default= list
+reaches only the modes that define no list of their own, which is to say
+=text-mode=, =org-mode= and similar: exactly the prose modes where you least
+want it.  That is backwards, and it is why plain English gets mangled -- "the
+delta between the two is a map of pi values" renders as "the δ between the two
+is a ↦ of π values".
+
+The fix is to append to whatever list the major mode has already installed,
+from a hook, so the mode's own entries survive alongside these.  Word-shaped
+entries (=map=, =pi=, =sum=, =lambda=, the Greek letters) are gone: they cannot
+tell a variable named =sum= from the English word, and the modes that genuinely
+want =lambda= as λ already define it themselves.  Only operators remain.
 
 #+begin_src emacs-lisp :tangle yes
 (setopt prettify-symbols-unprettify-at-point t)
-(setq-default prettify-symbols-alist '(
-  ("==" . "≡")
-  ("===" . "≣")
-  ("!=" . "≠")
-  ("!==" . "≢")
-  (">=" . "≥")
-  ("<=" . "≤")
-  ("->" . "-->")
-  ("<-" . "←")
-  ("<->" . "↔")
-  ("<=>" . "⇔")
-  ("->>" . "↠")
-  ("<<-" . "↞")
-  ("~>" . "↝")
-  ("|>" . "▷")
-  ("<|" . "◁")
-  ("map" . "↦")
-  ("lambda" . "λ")
-  ("alpha" . "α")
-  ("beta" . "β")
-  ("gamma" . "γ")
-  ("delta" . "δ")
-  ("pi" . "π")
-  ("sum" . "∑")
-  ("..." . "…")
-  ("::" . "∷")
-  (">>" . "»")
-  ("<<" . "«")
-  ("sqrt" . "√")
-  ("integral" . "∫")
-  ("forall" . "∀")
-  ("exists" . "∃")
-  (";;" . "#")))
 
-(add-hook 'prog-mode-hook #'prettify-symbols-mode)
-(add-hook 'text-mode-hook #'prettify-symbols-mode)
+(defconst my/prettify-symbols-operators
+  '(("==" . "≡")
+    ("===" . "≣")
+    ("!=" . "≠")
+    ("!==" . "≢")
+    (">=" . "≥")
+    ("<=" . "≤")
+    ("->" . "→")
+    ("<-" . "←")
+    ("<->" . "↔")
+    ("<=>" . "⇔")
+    ("->>" . "↠")
+    ("<<-" . "↞")
+    ("~>" . "↝")
+    ("|>" . "▷")
+    ("<|" . "◁")
+    ("..." . "…")
+    ("::" . "∷")
+    (">>" . "»")
+    ("<<" . "«"))
+  "Operator substitutions for `prettify-symbols-mode'.
+Operators only.  Word-shaped entries would fire on ordinary prose and on
+identifiers that merely happen to spell a Greek letter.")
+
+(defun my/prettify-symbols-setup ()
+  "Add `my/prettify-symbols-operators' to the mode's own list and enable the mode.
+Both steps happen here so the result does not depend on hook ordering."
+  (setq-local prettify-symbols-alist
+              (append my/prettify-symbols-operators prettify-symbols-alist))
+  (prettify-symbols-mode 1))
+
+(add-hook 'prog-mode-hook #'my/prettify-symbols-setup)
 #+end_src
+
+Note this is now =prog-mode= only.  =text-mode= was dropped deliberately: with
+the word entries gone there is little left that helps prose, and =::= would
+collide with org's description-list syntax (=- term :: definition=).  Add
+=(add-hook 'text-mode-hook #'my/prettify-symbols-setup)= to put it back.
 
 ** Backup files
 
