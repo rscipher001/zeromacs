@@ -549,10 +549,18 @@ Add a before save hook to update the =LAST_UPDATED= field
 
 ** Disable src indentation
 
+A named function rather than a lambda.  =add-hook= dedupes by comparing the
+function it is given against what is already on the hook, and a lambda gives it
+nothing stable to compare -- so re-evaluating the config (=my/reload-config=
+does exactly that) risks stacking up copies.  A named symbol also means the
+hook can be inspected with =C-h v org-mode-hook= and removed again.
+
 #+begin_src emacs-lisp :tangle yes
-(add-hook 'org-mode-hook
-  (lambda ()
-  (electric-indent-local-mode -1)))
+(defun my/org-disable-electric-indent ()
+  "Turn off `electric-indent-mode' locally, so src blocks are left alone."
+  (electric-indent-local-mode -1))
+
+(add-hook 'org-mode-hook #'my/org-disable-electric-indent)
 #+end_src
 
 ** Org capture
@@ -1446,6 +1454,19 @@ When working on the config, emacs has to be restarted over and over and over. It
   (find-file (expand-file-name "config.org" user-emacs-directory)))
 #+end_src
 
+** Open Tasks
+
+Bound to =SPC o o= below.  This exists as a named command rather than a lambda
+in the keymap so that =C-h k= reports something meaningful and =M-x= can find
+it.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/open-tasks ()
+  "Open the main Org tasks file."
+  (interactive)
+  (find-file (expand-file-name "Tasks.org" org-directory)))
+#+end_src
+
 ** Pandoc File Type Conversion
 
 Pandoc is a package that allows conversion between markdown, org, and many other file formats.
@@ -1533,9 +1554,7 @@ The first letter input, except x, c, h, m, g will be translated to C-c <key>.
   '("f y" . my/yank-buffer-path)
   '("o p" . dirvish-side)
   '("o t" . vterm)
-  '("o o" . (lambda ()
-            (interactive)
-            (find-file (concat org-directory "/Tasks.org"))))
+  '("o o" . my/open-tasks)
 
   '("w l" . windmove-right)
   '("w h" . windmove-left)
