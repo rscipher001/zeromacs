@@ -295,10 +295,20 @@ The height is roughly =font size * 10=. Height 120 would be similar to height 12
 
 ** Use system clipboard
 
-By default Emacs doesn't use the system clipboard and that makes copy paste stuff in and out of Emacs impossible, enabling this feature sync the primary keyboard in the system with Emacs clipboard (kill-ring)
+Emacs kill and yank talk to the system CLIPBOARD selection -- the one Ctrl-C
+and Ctrl-V use in other applications -- so copy and paste across the boundary
+works without any configuration.  That is =select-enable-clipboard=, and it has
+defaulted to =t= for a long time, so the setting below is redundant.  It is kept
+=:tangle no= because knowing the name of the knob is worth more than the line
+of code.
 
-#+begin_src emacs-lisp
-(setopt select-enable-clipboard t)
+The neighbouring knob is =select-enable-primary=, which controls the X PRIMARY
+selection -- the middle-click one filled by merely selecting text.  That one
+defaults to =nil=.  If you want middle-click paste to reach Emacs, that is the
+variable to set, not this one.
+
+#+begin_src emacs-lisp :tangle no
+(setopt select-enable-clipboard t)   ; already the default
 #+end_src
 
 ** Save place in file
