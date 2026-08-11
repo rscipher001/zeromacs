@@ -456,7 +456,20 @@ This is annoying because it clutters directories and these files show up in git 
 
 It means when the file changes on the disk, update the open buffer
 
+Two options are worth setting alongside it.
+
+=auto-revert-avoid-polling= switches from stat-ing every file on a timer to
+using the OS file-notification support, so idle Emacs stops doing periodic work
+proportional to how many buffers are open.  Emacs still falls back to polling
+for files on filesystems that cannot notify, such as most remote TRAMP paths.
+
+=global-auto-revert-non-file-buffers= extends the same treatment to buffers
+that are not visiting a file, which in practice means Dired and Dirvish
+refreshing when a directory's contents change underneath them.
+
 #+begin_src emacs-lisp :tangle yes
+(setopt auto-revert-avoid-polling t)
+(setopt global-auto-revert-non-file-buffers t)
 (global-auto-revert-mode 1)
 #+end_src
 
