@@ -1364,12 +1364,17 @@ Custom functions to encrypt and decrypt age files
 
 *** Markdown Mode
 
-New and experimental markdown mode
+New and experimental markdown mode.  It ships with Emacs 31, hence =:ensure
+nil=.
+
+The =:mode= line is what actually makes it do something.  Without it the block
+had no =:mode=, =:hook=, =:commands= or =:bind=, so nothing could ever trigger
+the package and =.md= files kept opening in the plain built-in mode.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package markdown-ts-mode
   :ensure nil
-  :defer t)
+  :mode "\\.md\\'")
 #+end_src
 
 ** Themes
