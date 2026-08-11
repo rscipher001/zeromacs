@@ -69,6 +69,48 @@ re-tangling only when the org file is the newer of the two.
  (locate-user-emacs-file "config.org"))
 #+end_src
 
+* Early Init
+
+Emacs 27 added a second startup file, =~/.config/emacs/early-init.el=, which
+runs *before* =init.el=, before package activation, and before the first frame
+is created. That last point is what makes it worth having.
+
+The UI bars below are switched off with =(tool-bar-mode -1)= and friends, but
+that code runs from =init.el=, by which time the frame has already been built
+*with* a toolbar. You see it drawn and then removed -- a visible flicker on
+every start. Setting the corresponding frame parameters in =early-init.el=
+means the frame is never built with them at all. The mode calls further down
+stay where they are as documentation, and simply become no-ops.
+
+The other job here is the garbage collector. Collecting during startup is close
+to pure waste, since init exists to allocate things that live for the whole
+session. Raising the threshold for the duration and restoring it afterwards is
+the standard trick. The restore is not optional: leave the threshold at
+=most-positive-fixnum= and Emacs never collects at all.
+
+This block is =:tangle no= -- it documents =early-init.el=, which is its own
+file and is not part of =config.el=.
+
+#+begin_src emacs-lisp :tangle no
+;;; early-init.el --- Runs before the first frame exists -*- lexical-binding: t; -*-
+
+(push '(tool-bar-lines . 0) default-frame-alist)
+(push '(menu-bar-lines . 0) default-frame-alist)
+(push '(vertical-scroll-bars) default-frame-alist)
+
+(setq frame-inhibit-implied-resize t)
+
+(setq gc-cons-threshold most-positive-fixnum
+      gc-cons-percentage 0.6)
+
+(defun my/restore-gc-settings ()
+  "Return the garbage collector to normal after startup."
+  (setq gc-cons-threshold (* 32 1024 1024)
+        gc-cons-percentage 0.1))
+
+(add-hook 'emacs-startup-hook #'my/restore-gc-settings)
+#+end_src
+
 * Basic configuration with sane defaults
 
 Emacs defaults are not designed for 2025 so let's fix that first.
