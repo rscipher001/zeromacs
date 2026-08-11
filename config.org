@@ -506,10 +506,18 @@ Save the time when task is marked as done, this can be enabled per org file with
 
 Recursively scan org files for org agenda
 
+Note =\\'= rather than =$= as the anchor.  In a regexp =$= matches at a
+newline as well as at the end of the string, so on a filename it is the
+wrong anchor even though it usually behaves; =\\'= matches only the true end.
+
+This runs on every =org-agenda= and =org-refile= invocation, and =org-directory=
+is also =org-roam-directory=, so every roam note gets scanned too.  If that ever
+becomes slow, this is the thing to make lazier.
+
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-refresh-agenda-files (&rest _)
   "Rescan `org-directory' so new files are included in the agenda."
-  (setopt org-agenda-files (directory-files-recursively org-directory "\\.org$")))
+  (setopt org-agenda-files (directory-files-recursively org-directory "\\.org\\'")))
 #+end_src
 
 Run this function before org agenda is loaded
