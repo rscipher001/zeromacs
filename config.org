@@ -976,8 +976,15 @@ The nick doubles as the SASL account name, and the server and port are needed ag
 
 *** SASL authentication
 
+=:after erc= matters here.  Without it, =use-package= has no deferring keyword
+to work with, so it =require='s the package at startup -- which pulls in =erc=
+itself and quietly defeats the =:defer t= on the block above.  Verified: before
+this change, merely loading the config left =erc=, =erc-sasl= and =erc-join= all
+loaded before any connection was made.
+
 #+begin_src emacs-lisp :tangle yes
 (use-package erc-sasl
+  :after erc
   :custom
   (erc-sasl-user my/erc-nick)
   (erc-sasl-auth-source-function #'erc-auth-source-search))
@@ -998,6 +1005,7 @@ Joined automatically on connecting.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package erc-join
+  :after erc
   :custom
   (erc-autojoin-channels-alist
    '((Libera.Chat "#emacs" "#erc" "#linux" "#systemcrafters"
