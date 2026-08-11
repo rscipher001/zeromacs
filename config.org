@@ -177,7 +177,16 @@ Enable recent files
 
 Save minibuffer history so it is available when you restart Emacs, it will be used for ranking the auto suggestions when we will setup minibuffer enhancements.
 
+=command-history= has to be excluded.  Savehist picks it up along with the real
+minibuffer histories, but unlike them it records every interactive command
+together with its arguments, and nothing ever truncates it -- it has no
+=history-length= property, so =history-length= does not apply.  Left alone it
+grows without bound; mine reached 27 MB and 9770 entries, which cost about half
+a second of parsing on every single startup.
+
 #+begin_src emacs-lisp
+(setopt savehist-ignored-variables '(command-history))
+(setopt history-length 500)
 (savehist-mode 1)
 #+end_src
 
