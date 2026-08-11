@@ -1366,73 +1366,124 @@ Age is an encryption tool, in this section, we will setup support age encrypted 
       "~/.config/age/yubikey_backup.pub")))
 #+end_src
 
-Custom functions to encrypt and decrypt age files
+*** Replacing a file with a converted copy
+
+Encrypting, decrypting, and converting between markup formats are all the same
+shape: run an external program that writes a new file, then swap the buffer over
+to it. Four commands in this config did that, each with its own copy of the
+guard clauses. This is the shared version; the age commands below and the
+[[*Pandoc File Type Conversion][pandoc commands]] further down are now thin wrappers around it.
+
+The two families differ in one respect, and the =replace= argument preserves it:
+the age commands remove the original, because a plaintext file left next to its
+own ciphertext defeats the point, while the pandoc commands leave it alone,
+because converting markdown to org is not a reason to lose the markdown.
+
+Two safety details are worth calling out, because the original four did neither.
+
+The output file is checked for existence and non-zero size before the original
+is deleted. An external program exiting =0= is not by itself proof that it wrote
+anything, and the original is about to be destroyed on the strength of that
+claim. This matters most for encryption: a silent failure there means losing
+the plaintext with nothing to show for it.
+
+Deletion goes through the system trash rather than =delete-file= outright, so a
+mistake stays recoverable. You already have a trash directory wired into the
+dirvish quick-access list.
+
+Note that "verify the output exists and is non-empty" is a much weaker check
+than "verify the output can be read back". For age in particular, a genuine
+round-trip test would mean decrypting the result, which needs the Yubikey and a
+touch. That is left undone deliberately -- keep a backup of anything you cannot
+afford to lose.
 
 #+begin_src emacs-lisp :tangle yes
-  (defun my/age-decrypt-current-file ()
-    "Decryption current age encrypted file"
-    (interactive)
-    (let* ((file (buffer-file-name))
-  	 (decrypted (and file (string-suffix-p ".age" file t)
-  			 (file-name-sans-extension file))))
-      (unless file (user-error "Buffer is not visiting a file"))
-      (unless decrypted (user-error "Current file is not age encrypted"))
-      (unless (executable-find "age")
-        (user-error "age not installed"))
-      (when (and (file-exists-p decrypted)
-  	       (not (yes-or-no-p (format "%s exists; overwriting? " decrypted))))
-        (user-error "Aborted"))
-      (when (buffer-modified-p)
-        (user-error "Please save changes before decrypting"))
+(defun my/convert-file-via-program (program args outfile what &optional replace)
+  "Run PROGRAM with ARGS, then switch this buffer to OUTFILE.
 
-      ;; Call age program to decrypt it
-      (let ((status (call-process "age" nil nil nil
-  				"--decrypt"
-  				"--identity" (expand-file-name "~/.config/age/primary")
-  				"--identity" (expand-file-name "~/.config/age/yubikey_primary")
-  				"--identity" (expand-file-name "~/.config/age/yubikey_backup")
-  				"--output" decrypted
-  				file)))
-        (if (zerop status)
-  	  (progn
-  	    (kill-buffer (current-buffer))
-  	    (delete-file file)
-  	    (find-file decrypted)
-  	    (message "Decrypted to %s" decrypted))
-  	(user-error "Age decryption failed (exit %s)" status)))))
+ARGS is a list of strings, and is expected to make PROGRAM write to
+OUTFILE.  WHAT is a human-readable name for the operation, used in
+messages.
 
-  (defun my/age-encrypt-current-file ()
-    "Encrypt current file with age"
-    (interactive)
-    (let* ((file (buffer-file-name))
-  	 (encrypted (concat file ".age")))
-      (unless file (user-error "Buffer is not visiting a file"))
-      (when (string-suffix-p ".age" file t)
-        (user-error "Current file is already age encrypted"))
-      (unless (executable-find "age")
-        (user-error "age not installed"))
-      (when (and (file-exists-p encrypted)
-  	       (not (yes-or-no-p (format "%s exists; overwriting? " encrypted))))
-        (user-error "Aborted"))
-      (when (buffer-modified-p)
-        (user-error "Please save changes before encrypting"))
+With REPLACE non-nil the original file is moved to trash, but only
+after OUTFILE is confirmed to exist and be non-empty."
+  (let ((file (buffer-file-name)))
+    (unless file
+      (user-error "Buffer is not visiting a file"))
+    (unless (executable-find program)
+      (user-error "%s is not installed" program))
+    (when (buffer-modified-p)
+      (user-error "Please save changes first"))
+    (when (and (file-exists-p outfile)
+               (not (yes-or-no-p (format "%s exists; overwrite? " outfile))))
+      (user-error "Aborted"))
+    (let ((status (apply #'call-process program nil nil nil args)))
+      (unless (zerop status)
+        (user-error "%s failed (exit %s)" what status))
+      ;; Exit 0 is a claim, not proof.  When REPLACE is set the original is
+      ;; about to go, so confirm there is something to lose it in favour of.
+      (unless (file-exists-p outfile)
+        (user-error "%s reported success but wrote no file" what))
+      (when (zerop (or (file-attribute-size (file-attributes outfile)) 0))
+        (user-error "%s reported success but wrote an empty file" what))
+      (kill-buffer (current-buffer))
+      (when replace
+        (delete-file file t))
+      (find-file outfile)
+      (message "%s: %s -> %s" what
+               (file-name-nondirectory file)
+               (file-name-nondirectory outfile)))))
+#+end_src
 
-      ;; Call age program to encrypt it
-      (let ((status (call-process "age" nil nil nil
-  				"--encrypt"
-  				"--recipients-file" (expand-file-name "~/.config/age/primary.pub")
-  				"--recipients-file" (expand-file-name "~/.config/age/yubikey_primary.pub")
-  				"--recipients-file" (expand-file-name "~/.config/age/yubikey_backup.pub")
-  				"--output" encrypted
-  				file)))
-        (if (zerop status)
-  	  (progn
-  	    (kill-buffer (current-buffer))
-  	    (delete-file file)
-  	    (find-file encrypted)
-  	    (message "Encrypted to %s" encrypted))
-  	(user-error "Age encryption failed (exit %s)" status)))))
-  #+end_src
+*** Encrypt and decrypt commands
+
+The key paths are named once here rather than repeated inside each command.
+
+#+begin_src emacs-lisp :tangle yes
+(defconst my/age-identity-files
+  '("~/.config/age/primary"
+    "~/.config/age/yubikey_primary"
+    "~/.config/age/yubikey_backup")
+  "Age identity files used for decryption.")
+
+(defconst my/age-recipient-files
+  '("~/.config/age/primary.pub"
+    "~/.config/age/yubikey_primary.pub"
+    "~/.config/age/yubikey_backup.pub")
+  "Age recipient files used for encryption.")
+
+(defun my/age-decrypt-current-file ()
+  "Decrypt the current age encrypted file, replacing it with the plaintext."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (unless (and file (string-suffix-p ".age" file t))
+      (user-error "Current file is not age encrypted"))
+    (let ((plain (file-name-sans-extension file)))
+      (my/convert-file-via-program
+       "age"
+       (append '("--decrypt")
+               (mapcan (lambda (id) (list "--identity" (expand-file-name id)))
+                       my/age-identity-files)
+               (list "--output" plain file))
+       plain "Age decryption" 'replace))))
+
+(defun my/age-encrypt-current-file ()
+  "Encrypt the current file with age, replacing it with the ciphertext."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (unless file
+      (user-error "Buffer is not visiting a file"))
+    (when (string-suffix-p ".age" file t)
+      (user-error "Current file is already age encrypted"))
+    (let ((encrypted (concat file ".age")))
+      (my/convert-file-via-program
+       "age"
+       (append '("--encrypt")
+               (mapcan (lambda (r) (list "--recipients-file" (expand-file-name r)))
+                       my/age-recipient-files)
+               (list "--output" encrypted file))
+       encrypted "Age encryption" 'replace))))
+#+end_src
 
 ** Extra modes for file types
 
@@ -1548,70 +1599,44 @@ it.
 
 Pandoc is a package that allows conversion between markdown, org, and many other file formats.
 
-*** Markdown to Org
-
-Uses pandoc to convert markdown to org
+Both directions are the same call with the arguments swapped, so they share one
+function. Note that =replace= is *not* passed to
+[[*Replacing a file with a converted copy][=my/convert-file-via-program=]]: converting markdown to org is not a reason to
+lose the markdown, so the original stays where it is. This matches what these
+commands did before.
 
 #+begin_src emacs-lisp :tangle yes
-  (defun my/md-to-org()
-    "Convert current markdown file to org"
-    (interactive)
-    (let ((file (buffer-file-name)))
-      (unless (and file (string-match-p "\\.md\\'" file))
-        (user-error "Current buffer is not a markdown file"))
-      (unless (executable-find "pandoc")
-        (user-error "Pandoc is not installed"))
-      (when (buffer-modified-p)
-        (user-error "Please save the changes"))
+(defun my/pandoc-convert-current-file (from to from-ext to-ext)
+  "Convert the current FROM file to TO with pandoc.
+FROM and TO are pandoc format names.  FROM-EXT and TO-EXT are the
+corresponding file extensions, leading dot included."
+  (let ((file (buffer-file-name)))
+    (unless (and file (string-suffix-p from-ext file t))
+      (user-error "Current buffer is not a %s file" from))
+    (let ((out (concat (file-name-sans-extension file) to-ext)))
+      (my/convert-file-via-program
+       "pandoc"
+       (list "--from" from "--to" to "--output" out file)
+       out
+       (format "Pandoc %s to %s" from to)))))
+#+end_src
 
-      ;; The file is ready for conversion, no blockers
-      (let ((org-file (concat (file-name-sans-extension file) ".org")))
-        (when (and (file-exists-p org-file)
-  		 (not (yes-or-no-p (format "%s exists; overwrite? " org-file))))
-          (user-error "Aborted"))
-        (let ((status (call-process "pandoc" nil nil nil
-  				  "--from" "markdown"
-  				  "--to" "org"
-  				  "--output" org-file
-  				  file)))
-          (unless (zerop status)
-  	  (user-error "Pandoc conversion failed (status %s)" status))
-          (kill-buffer (current-buffer))
-          (find-file org-file)
-          (message "Converted %s -> %s" (file-name-nondirectory file) (file-name-nondirectory org-file))))))
+*** Markdown to Org
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/md-to-org ()
+  "Convert the current markdown file to org."
+  (interactive)
+  (my/pandoc-convert-current-file "markdown" "org" ".md" ".org"))
 #+end_src
 
 *** Org to markdown
 
-Uses pandoc to convert org to markdown
-
 #+begin_src emacs-lisp :tangle yes
-  (defun my/org-to-md()
-    "Convert current org file to markdown"
-    (interactive)
-    (let ((file (buffer-file-name)))
-      (unless (and file (string-match-p "\\.org\\'" file))
-        (user-error "Current buffer is not a org file"))
-      (unless (executable-find "pandoc")
-        (user-error "Pandoc is not installed"))
-      (when (buffer-modified-p)
-        (user-error "Please save the changes"))
-
-      ;; The file is ready for conversion, no blockers
-      (let ((md-file (concat (file-name-sans-extension file) ".md")))
-        (when (and (file-exists-p md-file)
-  		 (not (yes-or-no-p (format "%s exists; overwrite? " md-file))))
-          (user-error "Aborted"))
-        (let ((status (call-process "pandoc" nil nil nil
-  				  "--from" "org"
-  				  "--to" "markdown"
-  				  "--output" md-file
-  				  file)))
-          (unless (zerop status)
-  	  (user-error "Pandoc conversion failed (status %s)" status))
-          (kill-buffer (current-buffer))
-          (find-file md-file)
-          (message "Converted %s -> %s" (file-name-nondirectory file) (file-name-nondirectory md-file))))))
+(defun my/org-to-md ()
+  "Convert the current org file to markdown."
+  (interactive)
+  (my/pandoc-convert-current-file "org" "markdown" ".org" ".md"))
 #+end_src
 
 * Keybinds
