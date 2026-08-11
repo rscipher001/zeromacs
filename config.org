@@ -1218,8 +1218,9 @@ Dirvish over tramp. This will be a really annoying experience if a Yubikey based
 
 #+begin_src emacs-lisp :tangle yes
 (use-package direnv
+  :ensure t
   :config
-  (direnv-mode))
+  (direnv-mode 1))
 #+end_src
 
 ** Keycast mode
